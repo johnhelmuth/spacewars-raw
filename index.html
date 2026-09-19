@@ -7,7 +7,45 @@
     <title>spacewarjs</title>
   </head>
   <body>
-    <div id="app"></div>
+  <div id="app">
+    <h1>Spacewar!</h1>
+    <p>a Typescript implementation with no framework or other external libraries.</p>
+    <section id="content">
+      <div id="first-panel">
+        <div class="tools">
+          <button id="start-stop-button">Start</button>
+        </div>
+        <div id="ship-1-controls" data-object-id="ship-1" class="controls">
+          <fieldset id="ship-1-controls-fieldset">
+            <legend>Ship 1</legend>
+            <label>Position: <input type="text" name="ship-1-position" id="ship-1-position"
+                                    class="ship-position"/></label>
+            <label>Facing: <input type="text" name="ship-1-facing" id="ship-1-facing" class="ship-facing"/></label>
+            <label>Engine <span class="engine-state">off</span>: <button id="ship-1-engine" class="ship-engine">Toggle</button</label>
+          </fieldset>
+        </div>
+      </div>
+      <div id="middle-panel">
+        <div id="screen" class="screen round-screen">
+        </div>
+      </div>
+      <div id="last-panel">
+        <div class="tools">
+          <label>Show grid: <input type="checkbox" id="show-grid" name="show-grid"/></label>
+          <label>Round screen: <input type="checkbox" id="round-screen" name="round-screen"/></label>
+        </div>
+        <div id="ship-2-controls" data-object-id="ship-2" class="controls">
+          <fieldset id="ship-2-controls-fieldset">
+            <legend>Ship 2</legend>
+            <label>Position: <input type="text" name="ship-2-position" id="ship-2-position"
+                                    class="ship-position"/></label>
+            <label>Facing: <input type="text" name="ship-2-facing" id="ship-2-facing" class="ship-facing"/></label>
+            <label>Engine <span class="engine-state">off</span>: <button id="ship-2-engine" name="ship-2-engine" class="ship-engine">Toggle</button</label>
+          </fieldset>
+        </div>
+      </div>
+    </section>
+  </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
