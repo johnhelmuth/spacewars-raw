@@ -131,22 +131,13 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectViewInterface) 
     }
   })
 
-  const engineControl = controlBlock.querySelector<HTMLFormElement>('.ship-engine');
-  if (! engineControl) {
-    throw new Error(`${objectId} engine control not available!`);
-  }
-  const engineStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
-  engineControl.addEventListener('click', () => {
-    console.log(`${objectId} Engine clicked!`);
-    if (ov.object.isShip(ov.object)) {
-      ov.object.toggleDrive();
-      if (engineStatusEl) {
-        engineStatusEl.innerText = (ov.object.drive.engineOn) ? 'on' : 'off';
-        console.log(`${objectId} acceleration is ${ov.object.acceleration}`);
-        console.log(`${objectId} facing is ${ov.object.facing}`);
-      }
-    }
-  })
+  // TODO: Write the control pad hover and click handlers.
+  // Behavior:
+  //   Hover in the left 3rd of pad, rotate left.
+  //   Hover in the right 3rd of pad, rotate right.
+  //   Hold mouse button down, run engine.
+  //   Release mouse button, turn off engine.
+
 }
 
 function updateRoundScreen() {

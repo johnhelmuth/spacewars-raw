@@ -120,6 +120,15 @@ p {
     min-height: 3rem;
     align-items: start;
   }
+
+  & .engine-state {
+    font-weight: bold;
+  }
+  & .control-pad-area {
+    height: 5rem;
+    width: 100%;
+    background-color: var(--accent);
+  }
 }
 
 #last-panel > :first-child {
