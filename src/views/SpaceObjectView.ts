@@ -5,25 +5,38 @@ import {BoundingBox} from "../types/geometry.ts";
 export const OBJECT_SIZE_WIDTH = 64;
 export const OBJECT_SIZE_HEIGHT = 64;
 
+export interface SpaceObjectViewOptions {
+  dimensions: { width: number; height: number };
+}
+
 export interface SpaceObjectViewInterface {
   object: SpaceObject;
+
+  options: SpaceObjectViewOptions;
 
   rotatePoint: Point;
 
   boundingBox(): BoundingBox;
 
-  render(): string;
+  render(showVectors: boolean): string;
 
   isCollision(ov: SpaceObjectViewInterface): boolean;
 }
 
-export abstract class SpaceObjectView implements SpaceObjectViewInterface {
+export abstract class SpaceObjectView extends EventTarget implements SpaceObjectViewInterface {
 
   object: SpaceObject;
+  options: SpaceObjectViewOptions;
+  objectScaleWidth: number;
+  objectScaleHeight: number;
   rotatePoint: Point;
 
-  protected constructor(object: SpaceObject) {
+  protected constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
+    super();
     this.object = object;
+    this.options = options;
+    this.objectScaleWidth = 1;
+    this.objectScaleHeight = 1;
     this.rotatePoint = {x: OBJECT_SIZE_WIDTH / 2, y: OBJECT_SIZE_HEIGHT / 2}
   }
 
@@ -38,24 +51,44 @@ export abstract class SpaceObjectView implements SpaceObjectViewInterface {
     })
   }
 
-  render() {
-    const {x, y} = this.object.position;
+  offsetObject(p: Point): Point {
+    return {
+      x: p.x - OBJECT_SIZE_WIDTH/2,
+      y: p.y - OBJECT_SIZE_HEIGHT/2,
+    }
+  }
+
+
+  vectorLineRender() {
+    return `<path class="object-vector" d="M ${this.object.position.x} ${this.object.position.y} L ${this.object.position.x + 100} ${this.object.position.y}" stroke-dasharray="- - -"/>`;
+  }
+
+  render(showVectors: boolean) {
+    const {x, y} = this.offsetObject(this.object.position);
     const facing = this.object.facing;
     const objectType = this.object.type;
-    const {x: rx, y: ry} = this.rotatePoint;
+    const scaledRotatePoint = {
+      x: this.rotatePoint.x * this.objectScaleWidth,
+      y: this.rotatePoint.y * this.objectScaleHeight,
+    };
+    const scaledPos = {
+      x: x * this.objectScaleWidth,
+      y: y * this.objectScaleHeight,
+    };
     return `
           <svg
             class="space-object ${objectType}"
-            height="${OBJECT_SIZE_HEIGHT}" width="${OBJECT_SIZE_WIDTH}"
-            x="${x}px"
-            y="${y}px"
-            style="transform-origin: calc(${x}px + ${rx}px) calc(${y}px + ${ry}px); transform: rotate(${facing}deg);"
+            height="${this.objectScaleHeight*64}" width="${this.objectScaleWidth*64}"
+            x="${scaledPos.x}px"
+            y="${scaledPos.y}px"
+            style="transform-origin: calc(${scaledPos.x}px + ${scaledRotatePoint.x}px) calc(${scaledPos.y}px + ${scaledRotatePoint.y}px); transform: rotate(${facing + 180}deg);"
             viewBox="0 0 ${OBJECT_SIZE_HEIGHT} ${OBJECT_SIZE_WIDTH}"
             preserveAspectRatio="xMidYMid meet"
           >
             <!-- <rect x="0" y="0" width="${OBJECT_SIZE_WIDTH}" height="${OBJECT_SIZE_HEIGHT}" fill="#5f5f5f"/> -->
             <g>
               ${this.shape()}
+              ${showVectors ? this.vectorLineRender() : ''}
             </g>
           </svg>
     `;

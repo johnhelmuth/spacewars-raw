@@ -12,36 +12,74 @@
     <p>a Typescript implementation with no framework or other external libraries.</p>
     <section id="content">
       <div id="first-panel">
-        <div class="tools">
-          <button id="start-stop-button">Start</button>
-        </div>
-        <div id="ship-1-controls" data-object-id="ship-1" class="controls">
-          <fieldset id="ship-1-controls-fieldset">
-            <legend>Ship 1</legend>
-            <label>Position: <input type="text" name="ship-1-position" id="ship-1-position"
-                                    class="ship-position"/></label>
-            <label>Facing: <input type="text" name="ship-1-facing" id="ship-1-facing" class="ship-facing"/></label>
-            <label>Engine <span class="engine-state">off</span>: <button id="ship-1-engine" class="ship-engine">Toggle</button</label>
-          </fieldset>
-        </div>
+        <button id="start-stop-button">Start</button>
+        <button id="step-button">Step</button>
+        <label>Round screen: <input type="checkbox" id="round-screen" name="round-screen"/></label>
       </div>
       <div id="middle-panel">
         <div id="screen" class="screen round-screen">
         </div>
       </div>
       <div id="last-panel">
-        <div class="tools">
-          <label>Show grid: <input type="checkbox" id="show-grid" name="show-grid"/></label>
-          <label>Round screen: <input type="checkbox" id="round-screen" name="round-screen"/></label>
+        <div id="ship-1-controls" data-object-id="ship-1" class="controls">
+          <fieldset id="ship-1-controls-fieldset">
+            <legend>Ship 1</legend>
+            <label>Position:
+              <input type="text" name="ship-1-position-x" id="ship-1-position-x" size="6"
+                     class="position-x" disabled/>
+              <input type="text" name="ship-1-position-y" id="ship-1-position-y" size="6"
+                     class="position-y" disabled/>
+            </label>
+            <label>
+              <label>Engine: <span class="engine-state">off</span>
+                <div><button id="ship-1-engine" name="ship-1-engine" class="ship-engine">Toggle</button></div>
+              </label>
+              <label>
+                Facing
+                <input type="text" name="ship-1-facing" id="ship-1-facing" size="6" class="ship-facing" disabled/>
+              </label>
+              <button id="ship-1-rotate-left" name="ship-1-rotate-left" class="ship-rotate rotate-left">Left</button>
+              <button id="ship-1-rotate-right" name="ship-1-rotate-right" class="ship-rotate rotate-right">Right</button>
+              <label>
+                Velocity
+                <input type="text" name="ship-1-velocity-magnitude" id="ship-1-velocity-magnitude" size="6"
+                       class="ship-velocity-magnitude" disabled/>
+                <input type="text" name="ship-1-velocity-direction" id="ship-1-velocity-direction" size="6"
+                       class="ship-velocity-direction" disabled/>
+              </label>
+          </fieldset>
         </div>
         <div id="ship-2-controls" data-object-id="ship-2" class="controls">
           <fieldset id="ship-2-controls-fieldset">
             <legend>Ship 2</legend>
-            <label>Position: <input type="text" name="ship-2-position" id="ship-2-position"
-                                    class="ship-position"/></label>
-            <label>Facing: <input type="text" name="ship-2-facing" id="ship-2-facing" class="ship-facing"/></label>
-            <label>Engine <span class="engine-state">off</span>: <button id="ship-2-engine" name="ship-2-engine" class="ship-engine">Toggle</button</label>
+            <label>Position:
+              <input type="text" name="ship-2-position-x" id="ship-2-position-x" size="6"
+                     class="position-x" disabled/>
+              <input type="text" name="ship-2-position-y" id="ship-2-position-y" size="6"
+                     class="position-y" disabled/>
+            </label>
+            <label>Engine: <span class="engine-state">off</span>
+              <div>
+                <button id="ship-2-engine" name="ship-2-engine" class="ship-engine">Toggle</button>
+              </div>
+            </label>
+            <label>
+              Facing
+              <input type="text" name="ship-2-facing" id="ship-2-facing" size="6" class="ship-facing" disabled/>
+            </label>
+            <button id="ship-2-rotate-left" name="ship-2-rotate-left" class="ship-rotate rotate-left">Left</button>
+            <button id="ship-2-rotate-right" name="ship-2-rotate-right" class="ship-rotate rotate-right">Right</button>
+            <label>
+              Velocity
+              <input type="text" name="ship-2-velocity-magnitude" id="ship-2-velocity-magnitude" size="6"
+                     class="ship-velocity-magnitude" disabled/>
+              <input type="text" name="ship-2-velocity-direction" id="ship-2-velocity-direction" size="6"
+                     class="ship-velocity-direction" disabled/>
+            </label>
           </fieldset>
+        </div>
+        <div class="user-messages">
+
         </div>
       </div>
     </section>

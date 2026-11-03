@@ -21,47 +21,100 @@ export type Angle = number;
  * Vector
  */
 export class Vector {
-  x: number;
-  y: number;
+  _x?: number;
+  _y?: number;
+  _mag?: number;
+  _dir?: Angle;
 
-  constructor(v: { x?: number; y?: number, magnitude?: number, direction?: Angle }) {
-    const {x, y, magnitude, direction} = v;
-    if (typeof x !== 'undefined' && typeof y !== 'undefined') {
-      this.x = x;
-      this.y = y;
+  constructor(v: {  point?: Point, x?: number; y?: number, magnitude?: number, direction?: Angle }) {
+    const {point, x, y, magnitude, direction} = v;
+    if (typeof point !== 'undefined') {
+      this._x = point.x;
+      this._y = point.y;
+    } else if (typeof x !== 'undefined' && typeof y !== 'undefined') {
+      this._x = x;
+      this._y = y;
     } else if (typeof magnitude !== 'undefined' && typeof direction !== 'undefined') {
-      const { x, y } = magDirToPoint(magnitude, direction);
-      this.x = x;
-      this.y = y;
+      this._mag = magnitude;
+      this._dir = direction;
     } else {
       throw new Error('Invalid parameters passed to constructor');
     }
+  }
+
+  get x() {
+    if (typeof this._x !== 'undefined') {
+      return this._x;
+    }
+    const v = this.calcXYFromMagDir()
+    this._x = v.x;
+    this._y = v.y;
+    return this._x;
+  }
+
+  get y() {
+    if (typeof this._y !== 'undefined') {
+      return this._y;
+    }
+    const v = this.calcXYFromMagDir()
+    this._x = v.x;
+    this._y = v.y;
+    return this._y;
   }
 
   /*
    * Gets the Vector's magnitude.
    */
   get magnitude() {
-    return Math.sqrt(this.x * this.x + this.y * this.y);
+    if (typeof this._mag === 'undefined') {
+      const vMD = this.calcMagDirFromXY();
+      this._mag = vMD.magnitude;
+      this._dir = vMD.direction;
+    }
+    return this._mag;
   }
 
   set magnitude(magnitude: number) {
-    const { x, y } = magDirToPoint(magnitude, this.direction);
-    this.x = x;
-    this.y = y;
+    this._mag = magnitude;
+    this._x = undefined;
+    this._y = undefined;
   }
 
   /*
    * Gets the Vector's direction in degrees;
    */
   get direction() {
-    return Math.atan2(this.x, this.y) * 180 / Math.PI;
+    if (typeof this._dir === 'undefined') {
+      const vMD = this.calcMagDirFromXY();
+      this._mag = vMD.magnitude;
+      this._dir = toDegrees(vMD.direction);
+    }
+    return this._dir;
   }
 
   set direction(direction: Angle) {
-    const { x, y } = magDirToPoint(this.magnitude, direction);
-    this.x = x;
-    this.y = y;
+    this._dir = direction;
+    this._x = undefined;
+    this._y = undefined;
+  }
+
+  asPoint() {
+    const { x, y } = this;
+    return { x, y };
+  }
+  calcXYFromMagDir() {
+    if (typeof this._mag !== 'undefined' && typeof this._dir !== 'undefined' ) {
+      const {x, y} = magDirToPoint(this._mag, this._dir);
+      return {x, y}
+    }
+    throw new Error('No magnitude or direction was specified.')
+  }
+
+  calcMagDirFromXY() {
+    if (typeof this._x !== 'undefined' && typeof this._y !== 'undefined' ) {
+      return pointToMagDir({ x: this._x, y: this._y});
+    }
+    throw new Error('No x or y was specified.')
   }
 
   addVector(v: Vector) {
@@ -72,10 +125,15 @@ export class Vector {
   }
 
   toString() {
-    return `[${this.x},${this.y}, ${this.magnitude}, ${this.direction}]`;
+    const { x, y, magnitude, direction } = this;
+    return `{ x: ${x}, y: ${y}, magnitude: ${magnitude}, direction: ${direction} }`;
   }
 }
 
+/**
+ * Velocity is a Vector that considers the magnitude of the Vector as the speed of the object
+ * in meters per second (m/s) and the direction as an angle in degrees.
+ */
 export type Velocity = Vector;
 
 export interface BoundingBoxInterface {
@@ -127,10 +185,14 @@ export class BoundingBox implements BoundingBoxInterface {
     ]
   }
 
+  get aspectRatio() {
+    return this.width / this.height;
+  }
+
   pointIntersects(p: Point): boolean {
     return (
-        this.left <= p.x && p.x <= this.right
-        && this.top <= p.y && p.y <= this.bottom
+           between(p.x, [this.left, this.right])
+        && between(p.y, [this.top, this.bottom])
     )
   }
 
@@ -144,6 +206,7 @@ export class BoundingBox implements BoundingBoxInterface {
     }
 
     const thisCornersInBox = this.corners.some((p) => box.pointIntersects(p));
+
     if (thisCornersInBox) {
       return true;
     }
@@ -151,8 +214,8 @@ export class BoundingBox implements BoundingBoxInterface {
   }
 }
 
-export const degreeToRadiansFactor = Math.PI / 180;
-export const radiansToDegreesFactor = 180 / Math.PI;
+export const degreeToRadiansFactor = Math.fround(Math.PI / 180);
+export const radiansToDegreesFactor = Math.fround(180 / Math.PI);
 
 /**
  * toDegrees()
@@ -160,7 +223,7 @@ export const radiansToDegreesFactor = 180 / Math.PI;
  * Converts an angle (radians) to degrees.
  */
 export function toDegrees(angle: number): Angle {
-  return angle * radiansToDegreesFactor;
+  return Math.fround(angle * radiansToDegreesFactor);
 }
 
 /**
@@ -169,9 +232,20 @@ export function toDegrees(angle: number): Angle {
  * Converts an angle (Angle) to radians.
  */
 export function toRadians(degrees: Angle): number {
-  return degrees * degreeToRadiansFactor;
+  return Math.fround(degrees * degreeToRadiansFactor);
 }
 
+/**
+ * Determine if a number is within a range of numbers, inclusive.
+ *
+ * @param a {number}
+ * @param b {[number, number]}
+ */
+export function between(a: number, b: [number, number]): boolean {
+  return (
+      b[0] <= a && a <= b[1]
+  );
+}
 
 /**
  * Translates a position by a Vector.
@@ -196,19 +270,23 @@ export function translateVector(p: Point, v: Vector): Point {
  * @returns {number} - The clamped angle.
  */
 export function angleClamp(n: Angle): Angle {
-  if (n > 360) {
-    return n - 360;
-  }
-  if (n < 0) {
-    return n + 360;
-  }
-  return n;
+  const newN = n % 360;
+  return newN < 0 ? (newN + 360) : newN;
 }
 
 export function magDirToPoint(magnitude: number, direction: Angle): Point {
   const directionRad = toRadians(direction);
   return {
-    x: magnitude * Math.sin(directionRad),
-    y: -magnitude * Math.cos(directionRad)
+    x: Math.fround(magnitude * Math.cos(directionRad)),
+    y: Math.fround(magnitude * Math.sin(directionRad))
   };
+}
+
+export function pointToMagDir(p: Point) {
+  const magnitude = Math.fround(Math.sqrt(p.x * p.x + p.y * p.y));
+  const direction = Math.fround(angleClamp(Math.atan2(p.y, p.x) * 180 / Math.PI));
+  console.log('pointToMagDir() p', p);
+  console.log('pointToMagDir() magnitude', magnitude);
+  console.log('pointToMagDir() direction', direction);
+  return { magnitude, direction };
 }

@@ -1,6 +1,9 @@
 
 import {type Angle, type Point, type Velocity} from '../types/geometry.ts';
 import {Ship} from "./Ship.ts";
+import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
+
+const DEFAULT_ROTATE_ANGLE = 5; // Rotate 5 degrees by default.
 
 export interface SpaceObjectInterface {
 
@@ -34,26 +37,42 @@ export interface SpaceObjectInterface {
   rotate: (angle: Angle) => void,
 }
 
-export default class SpaceObject implements SpaceObjectInterface {
+export default class SpaceObject extends EventTarget implements SpaceObjectInterface {
   id: string;
   name: string;
   type: string;
-  position: Point;
-  facing: number;
-  velocity: Velocity;
+  _position: Point;
+  _facing: number;
+  velocity: Velocity; // meters / second
   mass: number;
 
   constructor(name: string, position: Point, facing: number, velocity: Velocity, mass: number = 1) {
+    super();
     this.id = Math.random().toString(16).substring(2, 8);
     this.name = name;
     this.type = 'generic';
-    this.position = position;
-    this.facing = facing;
+    this._position = position;
+    this._facing = facing;
     this.velocity = velocity;
     this.mass = mass;
   }
 
-  rotate(angle: Angle) {
+  get facing() {
+    return this._facing;
+  }
+
+  set facing(facing: number) {
+    if (this._facing == facing) {
+      return;
+    }
+    this._facing = facing;
+    this.dispatchUpdated();
+  }
+
+  rotate(angle?: Angle) {
+    if (typeof angle === 'undefined') {
+      angle = this instanceof Ship ? this.rotateAnglePerTick : DEFAULT_ROTATE_ANGLE;
+    }
     let newFacing = this.facing + angle;
     if (newFacing > 360) {
       // 370 degrees should be 10 degrees
@@ -65,8 +84,24 @@ export default class SpaceObject implements SpaceObjectInterface {
     this.facing = newFacing;
   }
 
-  isShip(obj: any): obj is Ship {
-    return obj instanceof Ship;
+  get position() {
+    return this._position;
+  }
+
+  set position(p: Point) {
+    if (this._position.x == p.x && this._position.y == p.y) {
+      return;
+    }
+    this._position = p;
+    this.dispatchUpdated();
+  }
+
+  isShip(): this is Ship {
+    return this instanceof Ship;
+  }
+
+  dispatchUpdated() {
+    this.dispatchEvent(new ObjectUpdatedEvent());
   }
 
 }

@@ -91,54 +91,69 @@ p {
 #content {
   flex-grow: 1;
   display: grid;
-  grid-template-columns: 1fr 8fr 1fr;
+  grid-template-rows: min-content auto min-content;
   justify-content: stretch;
+  padding: 1rem;
 }
 
 #first-panel {
-  grid-column: 1 / 2;
+  grid-row: 1 / 2;
 }
 #middle-panel {
-  grid-column: 2 / 3;
+  grid-row: 2 / 3;
 }
 #last-panel {
-  grid-column: 3 / 4;
+  grid-row: 3 / 4;
 }
 #first-panel, #last-panel {
 
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: min-content min-content min-content;
+  padding: 0.5rem;
+  justify-content: space-between;
 
-  & > * {
-    padding: 0.5rem;
+
+  & .engine-state {
+    font-weight: bold;
   }
-
-  & > :first-child {
-    margin-bottom: .75rem;
-    display: flex;
-    flex-direction: column;
-    min-height: 3rem;
-    align-items: start;
+  div.controls {
+    label {
+      display: block;
+    }
   }
 }
 
-#last-panel > :first-child {
-  align-items: end;
+#last-panel {
+  grid-template-columns: max-content max-content;
+  grid-template-areas: "controls1 controls2"
+                       "messages messages";
+  grid-template-rows: min-content min-content;
+  justify-content: space-between;
+
+  div.controls[data-object-id="ship-1"] {
+    grid-area: controls1;
+  }
+  div.controls[data-object-id="ship-"] {
+    grid-area: controls2;
+  }
+  div.user-messages {
+    grid-area: messages;
+    min-height: 2rem;
+  }
 }
+
 
 #middle-panel {
 
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   place-content: center;
   container-type: size;
 
   .screen {
     position: relative;
-    height: auto;
-    width: auto;
-    max-height: 100cqh;
-    max-width: 100cqw;
+    width: 100cqw;
+    height: 100cqh;
     aspect-ratio: 1;
 
     background-color: var(--screen-bg);
@@ -149,6 +164,11 @@ p {
 
     & .ship {
       stroke: #00ff00;
+      stroke-width: 1px;
+    }
+
+    & .object-vector {
+      stroke: lightblue;
       stroke-width: 1px;
     }
   }

@@ -5,24 +5,35 @@ import {type WallType} from "../events/CollisionEvent.ts";
 /**
  * Scene
  *
- * Defines geometry (size of screen) and options  has multiple Objects
+ * Defines geometry (size of screen) and options
  *   has multiple ObjectViews
  *     each ObjectView is responsible for rendering an object in the scene.
  *     each ObjectView has a Model that is responsible for the Object's behavior.
  */
-export default class Scene {
+export default class Scene extends EventTarget {
   options: SceneOptions;
-  objectViews: SpaceObjectView[];
+  objectViews: SpaceObjectView[] = [];
   boundingBox: BoundingBox;
+  objectScaleWidth: number;
+  objectScaleHeight: number;
+  scaledBoundingBox?: BoundingBox;
 
   constructor(options: SceneOptions, objectViews?: SpaceObjectView[]) {
+    super();
     this.options = options;
-    this.objectViews = objectViews || [] as SpaceObjectView[];
+    this.setObjects(objectViews || [] as SpaceObjectView[]);
     this.boundingBox = new BoundingBox({
       ...this.dimensions,
       x: -(this.dimensions.width/2),
       y: -(this.dimensions.height/2)
     })
+
+    this.objectScaleWidth = (this.options.dimensions.width / 1000);
+    this.objectScaleHeight = (this.options.dimensions.width / 1000);
+  }
+
+  setScaledBoundingBox(scaledBoundingBox: BoundingBox) {
+    this.scaledBoundingBox = scaledBoundingBox;
   }
 
   * [Symbol.iterator]() {
@@ -42,6 +53,13 @@ export default class Scene {
     return false;
   }
 
+  get showVectors() {
+    if (typeof this.options.showVectors !== "undefined") {
+      return this.options.showVectors;
+    }
+    return false;
+  }
+
   get roundScreen() {
     if (typeof this.options.roundScreen !== "undefined") {
       return this.options.roundScreen;
@@ -49,12 +67,12 @@ export default class Scene {
     return false;
   }
 
-  setObjects(objects: SpaceObjectView[]) {
-    this.objectViews = objects;
+  private setObjects(objects: SpaceObjectView[]) {
+    objects.forEach(ov => this.addObject(ov));
   }
 
-  addObject(object: SpaceObjectView) {
-    this.objectViews.push(object);
+  addObject(ov: SpaceObjectView) {
+    this.objectViews.push(ov);
   }
 
   collidesWith(ov: SpaceObjectView) {
@@ -69,17 +87,20 @@ export default class Scene {
   }
 
   wallIntersection(ov: SpaceObjectView): WallType | false {
+    if (typeof this.scaledBoundingBox === "undefined") {
+      return false;
+    }
     const obox = ov.boundingBox();
-    if (obox.top <= this.boundingBox.top) {
+    if (obox.top <= this.scaledBoundingBox.top) {
       return 'north'
     }
-    if (obox.right >= this.boundingBox.right) {
+    if (obox.right >= this.scaledBoundingBox.right) {
       return 'east';
     }
-    if (obox.bottom >= this.boundingBox.bottom) {
+    if (obox.bottom >= this.scaledBoundingBox.bottom) {
       return 'south';
     }
-    if (obox.left <= this.boundingBox.left) {
+    if (obox.left <= this.scaledBoundingBox.left) {
       return 'west';
     }
     return false;
@@ -90,4 +111,5 @@ export interface SceneOptions {
   dimensions: { width: number; height: number };
   showGrid?: boolean;
   roundScreen?: boolean;
+  showVectors?: boolean;
 }
