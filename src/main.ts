@@ -8,7 +8,6 @@ import {Drive, Ship} from "./models/Ship.ts";
 import {SpaceObjectView} from "./views/SpaceObjectView.ts";
 import {CollisionEvent} from "./events/CollisionEvent.ts";
 import {Vector} from "./types/geometry.ts";
-import type SpaceObject from "./models/SpaceObject.ts";
 
 const screenEl = document.querySelector<HTMLElement>('#screen');
 if (! screenEl) {
@@ -46,17 +45,18 @@ if (! userMessageEl) {
 const dimensions = {width: 1000, height: 1000};
 
 const drive1 = new Drive(9.8, false);
-const ship1 = new Ship('ship 1', {x: 0, y: 0}, 0, new Vector({x: 0, y: 0}), drive1);
+const ship1 = new Ship('ship 1', {x: 0, y: 350}, 10, new Vector({x: 0, y: 0}), drive1);
 const ship1View = new Ship1View(ship1, {dimensions});
 
 const drive2 = new Drive(9.8, false);
-const ship2 = new Ship('ship 2', { x: 76, y: -116 }, 90, new Vector({ x: 0, y: 0}), drive2);
+const ship2 = new Ship('ship 2', { x: 350, y: -116 }, 85, new Vector({ x: 0, y: 0}), drive2);
 const ship2View = new Ship2View(ship2, {dimensions});
 
 const scene = new Scene(
     {
       dimensions,
-      showGrid: false,
+      edgeInset: -16,
+      showGrid: true,
       roundScreen: false,
       showVectors: false,
     },
@@ -71,9 +71,9 @@ const world = new World(scene, engine, screenEl);
 
 engine.addEventListener('collision', (e: Event) => {
   if (e instanceof CollisionEvent) {
-    console.log('collision happened. collidedWith: ', e.collidedWith);
     if (userMessageEl) {
-      userMessageEl.textContent = `Collision`;
+      const collidedWith = typeof e.collidedWith === 'string' ? e.collidedWith : e.collidedWith.object.name;
+      userMessageEl.textContent = `Collision with ${collidedWith}`;
       setTimeout(() => userMessageEl.textContent = '', 3000);
     }
   }
@@ -171,15 +171,10 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
 
   const engineStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
   engineControl.addEventListener('click', () => {
-    console.log(`${objectId} Engine clicked!`);
     if (ov.object.isShip()) {
       ov.object.toggleDrive();
       if (engineStatusEl) {
         engineStatusEl.innerText = (ov.object.drive.engineOn) ? 'on' : 'off';
-        logObject(ov.object);
-        console.log(`${objectId} facing is ${ov.object.facing}`);
-        console.log(`${objectId} acceleration is ${ov.object.acceleration}`);
-        console.log(`${objectId} velocity is ${ov.object.velocity}`);
       }
     }
   })
@@ -188,7 +183,6 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
   velocityDirectionControl.value = `${ov.object.velocity.direction}`;
 
   ov.object.addEventListener('updated', () => {
-    console.log(`${objectId} updated!`);
     positionXControl.value = `${ov.object.position.x}`;
     positionYControl.value = `${ov.object.position.y}`;
     facingControl.value = ov.object.facing.toString();
@@ -208,6 +202,9 @@ function updateRoundScreen() {
   }
 }
 
+/*
+
+import type SpaceObject from "./models/SpaceObject.ts";
 function logObject(o: SpaceObject) {
   console.group(`${o.name}`);
   console.log(`facing is ${o.facing}`);
@@ -218,3 +215,5 @@ function logObject(o: SpaceObject) {
   console.log(`velocity is ${o.velocity}`);
   console.groupEnd();
 }
+
+ */

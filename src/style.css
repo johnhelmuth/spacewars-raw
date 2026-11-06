@@ -111,7 +111,15 @@ p {
   grid-template-columns: min-content min-content min-content;
   padding: 0.5rem;
   justify-content: space-between;
+  align-items: center;
 
+  .option-control {
+    display: flex;
+    align-items: center;
+    input {
+      margin-left: .5rem;
+    }
+  }
 
   & .engine-state {
     font-weight: bold;

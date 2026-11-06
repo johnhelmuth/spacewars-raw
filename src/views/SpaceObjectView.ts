@@ -78,7 +78,7 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
     return `
           <svg
             class="space-object ${objectType}"
-            height="${this.objectScaleHeight*64}" width="${this.objectScaleWidth*64}"
+            height="${this.objectScaleHeight*OBJECT_SIZE_HEIGHT}" width="${this.objectScaleWidth*OBJECT_SIZE_WIDTH}"
             x="${scaledPos.x}px"
             y="${scaledPos.y}px"
             style="transform-origin: calc(${scaledPos.x}px + ${scaledRotatePoint.x}px) calc(${scaledPos.y}px + ${scaledRotatePoint.y}px); transform: rotate(${facing + 180}deg);"

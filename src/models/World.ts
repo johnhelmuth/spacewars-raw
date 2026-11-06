@@ -60,9 +60,15 @@ export default class World extends EventTarget {
 
       const x = -(width) / 2;
       const y = -(height) / 2;
+      const insetAmount = this.scene.options.edgeInset;
       return {
         boundingBox: new BoundingBox({x, y, width, height}),
-        scaledBoundingBox: new BoundingBox({ x: x*scale, y: y*scale, width: width * scale, height: height * scale}),
+        scaledBoundingBox: new BoundingBox({
+          x: x*scale + insetAmount,
+          y: y*scale + insetAmount,
+          width: width * scale - insetAmount * 2,
+          height: height * scale - insetAmount * 2
+        }),
         scaleX,
         scaleY,
         scale,
@@ -127,7 +133,6 @@ export default class World extends EventTarget {
   }
 
   step() {
-    console.log('World.step() called.')
     this.animationIsStepping = true;
     const timestamp = performance.now();
     if (typeof this.startTime === 'undefined') {
@@ -141,23 +146,11 @@ export default class World extends EventTarget {
   }
 
   frameHandler(timestamp: DOMHighResTimeStamp) {
-    console.group('frameHandler()')
-    const frameStartTime = performance.now();
-    console.log('frameStartTime', frameStartTime);
-    if (this.lastTickTime) {
-      console.log('this.lastTickTime', this.lastTickTime);
-      console.log('time since last frame start', frameStartTime - this.lastTickTime);
-    }
-    console.log('timestamp', timestamp);
     if (this.isRunning || this.isStepping) {
-      console.log('Calling engine.tick()');
       this.engine.tick(this.scene, timestamp);
-      console.log('Dispatching tick event ', timestamp);
       this.dispatchEvent(new TickEvent(timestamp));
       this.lastTickTime = timestamp;
-      console.log('Calling render()');
-      this.render(timestamp);
-      console.log('frameHandler time', performance.now()-frameStartTime);
+      this.render();
       if (this.isRunning) {
         this.waitForFrameToUpdate();
       } else {
@@ -165,7 +158,6 @@ export default class World extends EventTarget {
         this.animationIsStepping = false;
       }
     }
-    console.groupEnd();
   }
 
   cancelAnimationFrameRequest() {
@@ -175,8 +167,7 @@ export default class World extends EventTarget {
     this.animationFrameRequestId = undefined;
   }
 
-  render(timestamp?: DOMHighResTimeStamp) {
-    console.log('render() timestamp: ', timestamp);
+  render() {
     const {x, y, width, height} = this.scene.boundingBox;
     const sceneSVG = [...this.scene]
         .map(ov => {
@@ -206,15 +197,15 @@ export default class World extends EventTarget {
     if (typeof elDims !== 'undefined') {
       const { scaledBoundingBox } = elDims;
 
-      const { x, y, x2, y2 } = scaledBoundingBox;
+      const { x, y, x2, y2, width, height } = scaledBoundingBox;
 
-      const orientDotRadius = 20;
+      const dotRadius = 20;
       const corners = [
-        `<circle cx="${x+orientDotRadius}" cy="${y+orientDotRadius}" r="${orientDotRadius}" fill="red" />`,
-        `<circle cx="${x2-orientDotRadius}" cy="${y+orientDotRadius}" r="${orientDotRadius}" fill="red" />`,
-        `<circle cx="${x2-orientDotRadius}" cy="${y2-orientDotRadius}" r="${orientDotRadius}" fill="red" />`,
-        `<circle cx="${x+orientDotRadius}" cy="${y2-orientDotRadius}" r="${orientDotRadius}" fill="red" />`,
-        // `<rect x="${x+orientDotRadius}" y="${y+orientDotRadius}" width="${elBB.width*scale-orientDotRadius*2}" height="${elBB.height*scale-orientDotRadius*2}" stroke="blue" stroke-width="50" fill="transparent" />`,
+        `<rect x="${x}" y="${y}" width="${width}" height="${height}" stroke="blue" stroke-width="5" fill="transparent" />`,
+        `<circle cx="${x}" cy="${y}" r="${dotRadius}" fill="red" />`,
+        `<circle cx="${x2}" cy="${y}" r="${dotRadius}" fill="red" />`,
+        `<circle cx="${x2}" cy="${y2}" r="${dotRadius}" fill="red" />`,
+        `<circle cx="${x}" cy="${y2}" r="${dotRadius}" fill="red" />`,
       ]
       return corners.join('\n');
 

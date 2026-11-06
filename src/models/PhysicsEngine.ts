@@ -1,9 +1,8 @@
 import type Scene from "./Scene.ts";
-import {translateVector, Vector} from "../types/geometry.ts";
+import {type Point, translateVector, Velocity} from "../types/geometry.ts";
 import {CollisionEvent, type CollisionTargetType} from "../events/CollisionEvent.ts";
 import type {SpaceObjectView} from "../views/SpaceObjectView.ts";
 import type SpaceObject from "./SpaceObject.ts";
-import {Ship} from "./Ship.ts";
 
 export default class PhysicsEngine extends EventTarget {
 
@@ -20,45 +19,33 @@ export default class PhysicsEngine extends EventTarget {
   tick(scene: Scene, timestamp: DOMHighResTimeStamp) {
     const timePeriod = 1/60; // seconds... assuming 60 frames per second
     //typeof this.lastTimestamp === "number" ? (timestamp - this.lastTimestamp)/1000 : 1/60;
-    console.group(`PhysicsEngine.tick() ${this.ticks}`)
     this.lastTimestamp = timestamp;
     for (const ov of scene) {
       const o = ov.object;
       const lastPos = o.position;
-      console.group(`PhysicsEngine.tick() ${o.name}`)
       const newVelocity = this.applyAccelerationToVelocity(o);
       const newPosition = translateVector(o.position, this.applyTimePeriod(newVelocity, timePeriod));
       if (newPosition === o.position) {
         // No change in position means we don't need to update.
-        console.groupEnd();
         continue;
       }
-      if (o instanceof Ship) {
-        console.log('acceleration', o.acceleration)
-      }
-      console.log('new velocity', newVelocity)
-      console.log('new position', newPosition);
-      console.groupEnd();
       o.velocity = newVelocity;
       o.position = newPosition;
-      const intersectsWall = scene.wallIntersection(ov);
+      const nextTickPosition = translateVector(o.position, this.applyTimePeriod(o.velocity, timePeriod))
+      const intersectsWall = scene.wallIntersection(ov.boundingBox(), nextTickPosition);
       if (intersectsWall) {
-        o.position = lastPos;
-        this.handleCollision(ov, intersectsWall);
+        this.handleCollision(ov, intersectsWall, lastPos);
       }
       const collidesWith = scene.collidesWith(ov);
       if (collidesWith) {
-        o.position = lastPos;
-        this.dispatchEvent(new CollisionEvent(ov, collidesWith))
+        this.handleCollision(ov, collidesWith, lastPos);
       }
     }
-    console.groupEnd();
     this.ticks++;
   }
 
-  applyTimePeriod(v: Vector, timePeriod: DOMHighResTimeStamp) {
-    const vector = new Vector({magnitude: v.magnitude * timePeriod, direction: v.direction});
-    console.log(`PhysicsEngine.applyTimePeriod(vector, timePeriod) v: ${v}, new v: ${vector}`);
+  applyTimePeriod(v: Velocity, timePeriod: DOMHighResTimeStamp) {
+    const vector = new Velocity({magnitude: v.magnitude * timePeriod, direction: v.direction});
     return vector;
   }
 
@@ -67,14 +54,33 @@ export default class PhysicsEngine extends EventTarget {
     if (o.isShip()) {
       vectors.push(o.acceleration)
     }
-    console.group('PhysicsEngine.applyAccelerationToVelocity() vectors')
-    vectors.forEach(v => console.log(`* ${v}`))
-    console.groupEnd();
     const velocity = vectors.reduce((acc, v) => {
       return acc.addVector(v);
-    }, new Vector({x: 0, y: 0}));
-    console.log(`PhysicsEngine.applyAccelerationToVelocity() new velocity: ${velocity}.`);
+    }, new Velocity({x: 0, y: 0}));
     return velocity;
+  }
+
+  /*
+   * Moves the object to the opposite edge, maintaining its velocity vector.
+   *
+   * @param ov: {SpaceObject}
+   */
+  moveToOppositeEdge(ov: SpaceObjectView, collidedWith: CollisionTargetType) {
+    // Change the position to make it appear the walls wrap.
+    // Do not allow the new position to also be a collision.
+    let coordName = 'x' as keyof Point;
+    switch (collidedWith) {
+      case 'north':
+        coordName = 'y';
+        break;
+      case 'south':
+        coordName = 'y';
+        break;
+    }
+    const newPosition = { ...ov.object.position} as Point;
+    newPosition[coordName] *= -1;
+    // Consider validating new position is not colliding with walls.
+    ov.object.position = newPosition;
   }
 
   /**
@@ -85,18 +91,17 @@ export default class PhysicsEngine extends EventTarget {
    *
    * @param ov {SpaceObjectView}
    * @param collidedWith {CollisionTargetType}
+   * @param lastPos {Point} The objects position just before the collision.
    */
-  handleCollision(ov: SpaceObjectView, collidedWith: CollisionTargetType) {
+  handleCollision(ov: SpaceObjectView, collidedWith: CollisionTargetType, lastPos: Point) {
     const collEvent = new CollisionEvent(ov, collidedWith);
     switch (collEvent.collisionType) {
       case 'wall':
-        /* ??? bounce to the other direction for now ??? */
-          // ov.object.velocity = reflectVelocity(ov.object.velocity, collEvent.bounceDirection);
-        /* TODO: Teleport to other side of screen. */
+        this.moveToOppositeEdge(ov, collidedWith);
         break;
       case 'SpaceObject':
-        /* ??? bounce to the other direction for now ??? */
-        // ov.object.velocity = reflectVelocity(ov.object.velocity, collEvent.bounceDirection);
+        //Change the position to its last position.
+        ov.object.position = lastPos;
         break;
     }
     this.dispatchEvent(collEvent);

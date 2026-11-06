@@ -1,5 +1,5 @@
 import SpaceObject from "./SpaceObject.ts";
-import {type Angle, type Point, Vector, type Velocity} from "../types/geometry.ts";
+import {type Angle, LIGHT_SPEED, type Point, Velocity} from "../types/geometry.ts";
 
 export class Drive {
   /** _acceleration is measured in meters/second **/
@@ -7,7 +7,7 @@ export class Drive {
   engineOn: boolean;
 
   constructor(acceleration: number, engineOn: boolean) {
-    this._acceleration = acceleration;
+    this._acceleration = Math.min(acceleration, LIGHT_SPEED);
     this.engineOn = engineOn;
   }
 
@@ -64,8 +64,7 @@ export class Ship extends SpaceObject {
   }
 
   get acceleration() {
-    const a = new Vector({ magnitude: this.drive.acceleration, direction: this.facing });
-    console.log(`Ship ${this.name} acceleration getter: ${a}`)
+    const a = new Velocity({ magnitude: this.drive.acceleration, direction: this.facing });
     return a;
   }
 

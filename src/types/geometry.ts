@@ -1,6 +1,17 @@
 /**
  * Geometry of the game.
  *
+ */
+
+
+/**
+ * LIGHT_SPEED - The maximum velocity of any object. Let's ignore time dilation for now.
+ *
+ * This seems to be a good value for game play.
+ */
+export const LIGHT_SPEED = 4000;
+
+/*
  * A point is an x,y pair in the screen (page) coordinate system.
  *
  * Positive x is to the right.
@@ -8,7 +19,6 @@
  *
  * (0,0) is in the center of the space?
  */
-
 export interface Point {
   x: number;
   y: number;
@@ -52,6 +62,12 @@ export class Vector {
     return this._x;
   }
 
+  set x(x: number) {
+    this._x = x;
+    this._mag = undefined;
+    this._dir = undefined;
+  }
+
   get y() {
     if (typeof this._y !== 'undefined') {
       return this._y;
@@ -60,6 +76,12 @@ export class Vector {
     this._x = v.x;
     this._y = v.y;
     return this._y;
+  }
+
+  set y(y: number) {
+    this._y = y;
+    this._mag = undefined;
+    this._dir = undefined;
   }
 
   /*
@@ -102,6 +124,7 @@ export class Vector {
     const { x, y } = this;
     return { x, y };
   }
+
   calcXYFromMagDir() {
     if (typeof this._mag !== 'undefined' && typeof this._dir !== 'undefined' ) {
       const {x, y} = magDirToPoint(this._mag, this._dir);
@@ -133,8 +156,37 @@ export class Vector {
 /**
  * Velocity is a Vector that considers the magnitude of the Vector as the speed of the object
  * in meters per second (m/s) and the direction as an angle in degrees.
+ *
+ * It has a maximum magnitude of LIGHT_SPEED.
  */
-export type Velocity = Vector;
+
+export class Velocity extends Vector {
+
+  constructor(v: {  point?: Point, x?: number; y?: number, magnitude?: number, direction?: Angle }) {
+    super(v);
+    if (super.magnitude > LIGHT_SPEED) { // This calculates magnitude if x, y was supplied to constructor.
+      super.magnitude = LIGHT_SPEED; // This reset x, y if they were supplied to constructor.
+    }
+  }
+
+  get magnitude() {
+    return super.magnitude;
+  }
+
+  set magnitude(magnitude: number) {
+    let velMagnitude = Math.min(magnitude, LIGHT_SPEED);
+    super.magnitude = velMagnitude;
+  }
+
+  addVector(v: Velocity) {
+    return new Velocity({
+      x: this.x + v.x,
+      y: this.y + v.y,
+    })
+  }
+
+
+}
 
 export interface BoundingBoxInterface {
   x: number,
@@ -285,8 +337,5 @@ export function magDirToPoint(magnitude: number, direction: Angle): Point {
 export function pointToMagDir(p: Point) {
   const magnitude = Math.fround(Math.sqrt(p.x * p.x + p.y * p.y));
   const direction = Math.fround(angleClamp(Math.atan2(p.y, p.x) * 180 / Math.PI));
-  console.log('pointToMagDir() p', p);
-  console.log('pointToMagDir() magnitude', magnitude);
-  console.log('pointToMagDir() direction', direction);
   return { magnitude, direction };
 }

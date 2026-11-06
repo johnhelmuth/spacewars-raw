@@ -1,5 +1,5 @@
 import type {SpaceObjectView} from "../views/SpaceObjectView.ts";
-import {BoundingBox} from "../types/geometry.ts";
+import {BoundingBox, type Point} from "../types/geometry.ts";
 import {type WallType} from "../events/CollisionEvent.ts";
 
 /**
@@ -86,21 +86,23 @@ export default class Scene extends EventTarget {
     }
   }
 
-  wallIntersection(ov: SpaceObjectView): WallType | false {
+  wallIntersection(obox: BoundingBox, nextPosition: Point): WallType | false {
     if (typeof this.scaledBoundingBox === "undefined") {
       return false;
     }
-    const obox = ov.boundingBox();
-    if (obox.top <= this.scaledBoundingBox.top) {
+    if (! this.scaledBoundingBox.boxIntersects(obox)) {
+      return false;
+    }
+    if (obox.top < this.scaledBoundingBox.top && nextPosition.y < this.scaledBoundingBox.top) {
       return 'north'
     }
-    if (obox.right >= this.scaledBoundingBox.right) {
+    if (obox.right > this.scaledBoundingBox.right && nextPosition.x > this.scaledBoundingBox.right) {
       return 'east';
     }
-    if (obox.bottom >= this.scaledBoundingBox.bottom) {
+    if (obox.bottom > this.scaledBoundingBox.bottom && nextPosition.y > this.scaledBoundingBox.bottom) {
       return 'south';
     }
-    if (obox.left <= this.scaledBoundingBox.left) {
+    if (obox.left < this.scaledBoundingBox.left && nextPosition.x < this.scaledBoundingBox.left) {
       return 'west';
     }
     return false;
@@ -109,6 +111,7 @@ export default class Scene extends EventTarget {
 
 export interface SceneOptions {
   dimensions: { width: number; height: number };
+  edgeInset: number;
   showGrid?: boolean;
   roundScreen?: boolean;
   showVectors?: boolean;

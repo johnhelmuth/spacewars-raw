@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test stuff</title>
+  <style>
+    #test-log {
+      margin: 2rem;
+    }
+    ul#log-list {
+      display: grid;
+      grid-template-columns: 3rem 1fr;
+      grid-row-gap: 1rem;
+      list-style: none;
+      padding: 0;
+
+      li.log-row {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-template-areas:
+            "message message"
+            ".       xy"
+            ".       magdir";
+        .msg {
+          grid-area: message;
+          margin-bottom: .5rem;
+        }
+        .vector-xy {
+          grid-area: xy;
+          margin-bottom: .5rem;
+        }
+        .vector-mag-dir {
+          grid-area: magdir;
+          margin-bottom: .5rem;
+        }
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <section id="test-log">
+    <ul id="log-list">
+
+    </ul>
+  </section>
+  <template id="test-log-item-template">
+    <li class="log-row">
+      <div class="msg"></div>
+      <div class="vector-xy"></div>
+      <div class="vector-mag-dir"></div>
+    </li>
+  </template>
+</div>
+<script type="module" src="/src/test.ts"></script>
+</body>
+</html>
