@@ -17,11 +17,14 @@ export default class PhysicsEngine extends EventTarget {
    * @param timestamp {DOMHighResTimeStamp} - milliseconds
    */
   tick(scene: Scene, timestamp: DOMHighResTimeStamp) {
-    const timePeriod = 1/60; // seconds... assuming 60 frames per second
-    //typeof this.lastTimestamp === "number" ? (timestamp - this.lastTimestamp)/1000 : 1/60;
+    // const timePeriod = 1/60; // seconds... assuming 60 frames per second
+    const timePeriod = typeof this.lastTimestamp === "number" ? (timestamp - this.lastTimestamp)/1000 : 1/60;
     this.lastTimestamp = timestamp;
     for (const ov of scene) {
       const o = ov.object;
+      if (o.isShip()) {
+        o.rotateTick(timePeriod);
+      }
       const lastPos = o.position;
       const newVelocity = this.applyAccelerationToVelocity(o);
       const newPosition = translateVector(o.position, this.applyTimePeriod(newVelocity, timePeriod));

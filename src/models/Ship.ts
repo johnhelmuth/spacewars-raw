@@ -32,20 +32,24 @@ export class Drive {
   }
 }
 
+export type RotateDirection = 'not' | 'left' | 'right';
+
 export class Ship extends SpaceObject {
 
   drive: Drive;
-  rotateAnglePerTick: number;
+  rotateAnglePerSecond: number;
+  rotateDirection: RotateDirection;
 
   constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, mass: number = 1) {
     super(name, position, facing, velocity, mass);
     this.type = 'ship';
     this.drive = drive;
-    this.rotateAnglePerTick = 5;
+    this.rotateAnglePerSecond = 60; // Degrees per second
+    this.rotateDirection = 'not';
   }
 
   setRotateAngleVelocity(angle: Angle) {
-    this.rotateAnglePerTick = angle;
+    this.rotateAnglePerSecond = angle;
   }
 
   switchDriveOn() {
@@ -68,12 +72,30 @@ export class Ship extends SpaceObject {
     return a;
   }
 
+  setRotateDirection(rotateDirection: RotateDirection) {
+    this.rotateDirection = rotateDirection;
+  }
+
   rotateLeft() {
-    this.rotate(-this.rotateAnglePerTick);
+    this.rotate(-this.rotateAnglePerSecond);
   }
 
   rotateRight() {
-    this.rotate(this.rotateAnglePerTick);
+    this.rotate(this.rotateAnglePerSecond);
+  }
+
+  rotateTick(timePeriod: number) {
+    let rotateAngle: Angle;
+    switch (this.rotateDirection) {
+      case 'left':
+        rotateAngle = -1 * (this.rotateAnglePerSecond * timePeriod);
+        this.rotate(rotateAngle);
+        break;
+      case 'right':
+        rotateAngle =(this.rotateAnglePerSecond * timePeriod);
+        this.rotate(rotateAngle);
+        break;
+    }
   }
 
   engineStatus(): boolean {

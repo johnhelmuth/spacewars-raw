@@ -73,7 +73,7 @@ export default class SpaceObject extends EventTarget implements SpaceObjectInter
 
   rotate(angle?: Angle) {
     if (typeof angle === 'undefined') {
-      angle = this instanceof Ship ? this.rotateAnglePerTick : DEFAULT_ROTATE_ANGLE;
+      angle = this instanceof Ship ? this.rotateAnglePerSecond : DEFAULT_ROTATE_ANGLE;
     }
     let newFacing = this.facing + angle;
     if (newFacing > 360) {

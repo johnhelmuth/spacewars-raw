@@ -115,6 +115,58 @@ roundScreenControl.addEventListener('change', (e: Event) => {
   }
 })
 
+type ShipCtlKeyBinding = { ship: Ship, action: 'rotate-left' | 'rotate-right' | 'drive' };
+
+const shipsCtlKeyMap = new Map<string, ShipCtlKeyBinding>([
+  ["KeyA", {"ship": ship1, "action": "rotate-left"}],
+  ["KeyD", {"ship": ship1, "action": "rotate-right"}],
+  ["KeyS", {"ship": ship1, "action": "drive"}],
+
+  ["ArrowLeft", {"ship": ship2, "action": "rotate-left"}],
+  ["ArrowRight", {"ship": ship2, "action": "rotate-right"}],
+  ["ArrowDown", {"ship": ship2, "action": "drive"}],
+]);
+
+function convertKeyToControl(keyCode: string): ShipCtlKeyBinding | undefined {
+  if (shipsCtlKeyMap.has(keyCode)) {
+    return shipsCtlKeyMap.get(keyCode) as ShipCtlKeyBinding;
+  }
+}
+
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  const binding = convertKeyToControl(e.code);
+  if (typeof binding === 'undefined') {
+    return;
+  }
+  switch (binding.action) {
+    case 'rotate-left':
+      binding.ship.setRotateDirection('left');
+      break;
+    case 'rotate-right':
+      binding.ship.setRotateDirection('right');
+      break;
+    case "drive":
+      binding.ship.switchDriveOn();
+      break;
+  }
+})
+
+document.addEventListener('keyup', (e: KeyboardEvent) => {
+  const binding = convertKeyToControl(e.code);
+  if (typeof binding === 'undefined') {
+    return;
+  }
+  switch (binding.action) {
+    case 'rotate-left':
+    case 'rotate-right':
+      binding.ship.setRotateDirection('not');
+      break;
+    case "drive":
+      binding.ship.switchDriveOff();
+      break;
+  }
+})
+
 function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
   const objectId = controlBlock.dataset.objectId;
 
@@ -130,18 +182,18 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
   if (!facingControl) {
     throw new Error(`${objectId} facing control not available!`);
   }
-  const facingLeftControl = controlBlock.querySelector<HTMLFormElement>('.ship-rotate.rotate-left');
-  if (!facingLeftControl) {
-    throw new Error(`${objectId} facing control left not available!`);
-  }
-  const facingRightControl = controlBlock.querySelector<HTMLFormElement>('.ship-rotate.rotate-right');
-  if (!facingRightControl) {
-    throw new Error(`${objectId} facing control right not available!`);
-  }
-  const engineControl = controlBlock.querySelector<HTMLFormElement>('.ship-engine');
-  if (!engineControl) {
-    throw new Error(`${objectId} engine control not available!`);
-  }
+  // const facingLeftControl = controlBlock.querySelector<HTMLFormElement>('.ship-rotate.rotate-left');
+  // if (!facingLeftControl) {
+  //   throw new Error(`${objectId} facing control left not available!`);
+  // }
+  // const facingRightControl = controlBlock.querySelector<HTMLFormElement>('.ship-rotate.rotate-right');
+  // if (!facingRightControl) {
+  //   throw new Error(`${objectId} facing control right not available!`);
+  // }
+  // const engineControl = controlBlock.querySelector<HTMLFormElement>('.ship-engine');
+  // if (!engineControl) {
+  //   throw new Error(`${objectId} engine control not available!`);
+  // }
 
   const velocityMagnitudeControl = controlBlock.querySelector<HTMLFormElement>('.ship-velocity-magnitude');
   if (!velocityMagnitudeControl) {
@@ -158,26 +210,26 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
 
   facingControl.value = ov.object.facing.toString();
 
-  facingLeftControl.addEventListener('click', () => {
-    if (ov.object.isShip()) {
-      ov.object.rotateLeft();
-    }
-  })
-  facingRightControl.addEventListener('click', () => {
-    if (ov.object.isShip()) {
-      ov.object.rotateRight();
-    }
-  })
+  // facingLeftControl.addEventListener('click', () => {
+  //   if (ov.object.isShip()) {
+  //     ov.object.rotateLeft();
+  //   }
+  // })
+  // facingRightControl.addEventListener('click', () => {
+  //   if (ov.object.isShip()) {
+  //     ov.object.rotateRight();
+  //   }
+  // })
 
   const engineStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
-  engineControl.addEventListener('click', () => {
-    if (ov.object.isShip()) {
-      ov.object.toggleDrive();
-      if (engineStatusEl) {
-        engineStatusEl.innerText = (ov.object.drive.engineOn) ? 'on' : 'off';
-      }
-    }
-  })
+  // engineControl.addEventListener('click', () => {
+  //   if (ov.object.isShip()) {
+  //     ov.object.toggleDrive();
+  //     if (engineStatusEl) {
+  //       engineStatusEl.innerText = (ov.object.drive.engineOn) ? 'on' : 'off';
+  //     }
+  //   }
+  // })
 
   velocityMagnitudeControl.value = `${ov.object.velocity.magnitude}`;
   velocityDirectionControl.value = `${ov.object.velocity.direction}`;
@@ -188,6 +240,9 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
     facingControl.value = ov.object.facing.toString();
     velocityMagnitudeControl.value = `${ov.object.velocity.magnitude}`;
     velocityDirectionControl.value = `${ov.object.velocity.direction}`;
+    if (ov.object instanceof Ship && engineStatusEl instanceof HTMLElement) {
+      engineStatusEl.innerText = ov.object.engineStatus() ? 'on' : 'off';
+    }
   })
 }
 
