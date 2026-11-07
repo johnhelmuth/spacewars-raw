@@ -69,7 +69,6 @@ export class TorpedoTube extends EventTarget {
       if (this.torpedoQueue < MAX_TORPEDOES_IN_QUEUE) {
         this.torpedoQueue++;
       }
-      console.log('TorpedoTube.fireTorpedo() torpedo queued: ', this.torpedoQueue);
       return;
     }
     const { position, facing } = this.ship as Ship;
@@ -85,8 +84,6 @@ export class TorpedoTube extends EventTarget {
       this.torpedoQueue--;
     }
     this.torpedoCooldown = TORPEDO_COOL_DOWN_PERIOD;
-    console.log('TorpedoTube.fireTorpedo() torpedo fired. this.torpedoQueue', this.torpedoQueue);
-    console.log('TorpedoTube.fireTorpedo() this.torpedoCooldown: ', this.torpedoCooldown);
     this.dispatchEvent(new TorpedoEvent(this.ship, t))
   }
 

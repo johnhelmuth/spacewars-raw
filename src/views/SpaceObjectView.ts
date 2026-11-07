@@ -1,5 +1,5 @@
 import type SpaceObject from "../models/SpaceObject.ts";
-import type {Point} from "../types/geometry.ts";
+import {type Point, rotateVertices} from "../types/geometry.ts";
 import {BoundingBox} from "../types/geometry.ts";
 
 export const OBJECT_SIZE_WIDTH = 64;
@@ -17,6 +17,8 @@ export interface SpaceObjectViewInterface {
 
   rotatePoint: Point;
 
+  vertices: Point[];
+
   boundingBox(): BoundingBox;
 
   render(showVectors: boolean): string;
@@ -31,6 +33,7 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
   objectScaleWidth: number;
   objectScaleHeight: number;
   rotatePoint: Point;
+  vertices = [] as Point[];
 
   protected constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super();
@@ -45,11 +48,45 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
 
   boundingBox(): BoundingBox {
     const {x, y} = this.object.position;
-    return new BoundingBox({
-      x, y,
-      width: OBJECT_SIZE_WIDTH,
-      height: OBJECT_SIZE_HEIGHT,
-    })
+    const localBB = this.objectLocalBoundingBox();
+    return new BoundingBox({...localBB, x: localBB.x + x, y: localBB.y + y});
+  }
+
+  _verticesToBoundingBox(vertices: Point[]) {
+    const MAX_VALUE = Number.MAX_VALUE;
+    let top = MAX_VALUE;
+    let right = -MAX_VALUE;
+    let bottom = -MAX_VALUE;
+    let left = MAX_VALUE;
+
+    for (const v of vertices) {
+      if (v.y < top) {
+        top = v.y;
+      }
+      if (v.y > bottom) {
+        bottom = v.y;
+      }
+      if (v.x < left) {
+        left = v.x;
+      }
+      if (v.x > right) {
+        right = v.x;
+      }
+    }
+
+    const width = right - left;
+    const height = bottom - top;
+
+    return new BoundingBox({ x: left, y: top, width, height });
+  }
+
+  objectLocalBoundingBox() {
+    return this._verticesToBoundingBox(this.vertices);
+  }
+
+  rotatedObjectLocalBoundingBox() {
+    const rotatedVertices = rotateVertices(this.vertices, { x: 0, y: 0 }, this.object.facing);
+    return this._verticesToBoundingBox(rotatedVertices);
   }
 
   offsetObject(p: Point): Point {
@@ -75,6 +112,7 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
       x: x * this.objectScaleWidth,
       y: y * this.objectScaleHeight,
     };
+    const bb = this.objectLocalBoundingBox();
     return `
           <svg
             class="space-object ${objectType}"
@@ -85,7 +123,7 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
             viewBox="0 0 ${OBJECT_SIZE_HEIGHT} ${OBJECT_SIZE_WIDTH}"
             preserveAspectRatio="xMidYMid meet"
           >
-             ${this.options.showGrid ? `<rect x="0" y="0" width="${OBJECT_SIZE_WIDTH}" height="${OBJECT_SIZE_HEIGHT}" stroke-width="0.5" fill="transparent"/>` : ''} 
+             ${this.options.showGrid ? `<rect x="${bb.x}" y="${bb.y}" width="${bb.width}" height="${bb.height}" stroke-width="0.5" fill="transparent"/>` : ''} 
             <g>
               ${this.shape()}
               ${showVectors ? this.vectorLineRender() : ''}

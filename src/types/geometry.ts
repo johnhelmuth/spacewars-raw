@@ -264,6 +264,11 @@ export class BoundingBox implements BoundingBoxInterface {
     }
     return false;
   }
+
+  containsBox(box: BoundingBox) {
+    const corners = box.corners;
+    return corners.every((p) => this.pointIntersects(p))
+  }
 }
 
 export const degreeToRadiansFactor = Math.fround(Math.PI / 180);
@@ -313,6 +318,30 @@ export function translateVector(p: Point, v: Vector): Point {
     y: p.y + v.y,
   }
 }
+
+export function rotateVertices(verts: Point[], rotPt: Point, direction: Angle) {
+  return verts.map((p) => {
+    return rotatePoint(p, rotPt, direction)
+  })
+}
+
+export function rotatePoint(p: Point, rotPt: Point, direction: Angle) {
+  const directionRad = toRadians(direction);
+  const pO = {
+    x: p.x - rotPt.x,
+    y: p.y - rotPt.y,
+  }
+  const pR = {
+    x: pO.x * Math.cos(directionRad) + pO.y * Math.sin(directionRad),
+    y: -pO.x * Math.sin(directionRad) + pO.y * Math.cos(directionRad),
+  }
+  const p1 = {
+    x: pR.x + rotPt.x,
+    y: pR.y + rotPt.y,
+  }
+  return p1;
+}
+
 
 /**
  * Clamps an angle in degrees to be between 0 and 360.

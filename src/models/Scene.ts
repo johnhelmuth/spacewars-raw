@@ -111,7 +111,7 @@ export default class Scene extends EventTarget {
     if (typeof this.scaledBoundingBox === "undefined") {
       return false;
     }
-    if (! this.scaledBoundingBox.boxIntersects(obox)) {
+    if (this.scaledBoundingBox.containsBox(obox)) {
       return false;
     }
     if (obox.top < this.scaledBoundingBox.top && nextPosition.y < this.scaledBoundingBox.top) {
@@ -154,7 +154,8 @@ export default class Scene extends EventTarget {
   }
 
   createNewTorpedoView(t: Torpedo) {
-    const tView = new TorpedoView(t, { dimensions: this.dimensions });
+    const { dimensions, showGrid } = this.options
+    const tView = new TorpedoView(t, { dimensions, showGrid: !!showGrid });
     this.addObject(tView);
     t.addEventListener('torpedo-destruct', this.torpedoDestructHandler);
   }

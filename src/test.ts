@@ -1,4 +1,10 @@
-import {Vector} from "./types/geometry.ts";
+import {Vector, type Point, translateVector, rotateVertices } from "./types/geometry.ts";
+
+const drawingT = document.querySelector('#test-drawing-template') as HTMLTemplateElement;
+if (! drawingT) {
+  throw new Error("Couldn't find 'test-drawing-template'");
+}
+const drawingList = document.querySelector('#drawing-list') as HTMLUListElement;
 
 const logItemT = document.querySelector('#test-log-item-template') as HTMLTemplateElement;
 if (! logItemT) {
@@ -6,19 +12,53 @@ if (! logItemT) {
 }
 const logList = document.querySelector('#log-list') as HTMLUListElement;
 
-const magnitude = 1;
-for (let i = 0 ; i <= 16; i++) {
-  const direction = i * 360/16;
-  const v1 = new Vector({ magnitude, direction })
-  const v2 = new Vector({ x: v1.x, y: v1.y });
-  const v3 = new Vector({ magnitude: v2.magnitude, direction: v2.direction });
-  logVector(`Test ${i}`);
-  logVector(`V1 Set mag, dir: ${v1.magnitude}, ${v1.direction}`, v1)
-  logVector(`V2 Set   x,   y: ${v1.x}, ${v1.y}`, v2)
-  logVector(`V3 Set mag, dir: ${v2.magnitude}, ${v2.direction}`, v3)
+const verts = [
+  { x: 2, y: 32 },
+  { x: 63, y: 48 },
+  { x: 32, y: 32 },
+  { x: 63, y: 16 },
+]
+
+const rotatePoint = { x: 32, y: 32};
+logDrawing(`Base verts `, svgFromVerts(verts, rotatePoint));
+const numTests = 16;
+for (let i = 1 ; i <= numTests; i++) {
+  const direction = i * 360/numTests;
+  const rotatedVerts = rotateVertices(verts, rotatePoint, direction);
+  logDrawing(`Test ${i+1} ${direction}deg`, svgFromVerts(rotatedVerts, rotatePoint));
 }
 
+function svgFromVerts(verts: Point[], rotatePoint: Point) {
+  const shape = verts.map((v: Point) => {
+    return `<circle cx="${v.x}" cy="${v.y}" r="2" fill="red" />`
+  }).join('\n')
+  return `
+          <svg
+            class="test-object"
+            height="256" width="256"
+            viewBox="-128 -128 256 256"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <g>
+              ${shape}
+            </g>
+            <g><circle cx="${rotatePoint.x}" cy="${rotatePoint.y}" r="1" fill="green"/></g>
+          </svg>
+    `;
+}
 
+function logDrawing(label: string, svg: string) {
+  const drawingItem = document.importNode(drawingT.content, true);
+  const labelEl = drawingItem.querySelector('.drawing-label');
+  if (labelEl) {
+    labelEl.textContent = label;
+  }
+  const drawingEl = drawingItem.querySelector('.drawing');
+  if (drawingEl) {
+    drawingEl.innerHTML = svg;
+  }
+  drawingList.appendChild(drawingItem)
+}
 
 function logVector(msg: string, v?: Vector) {
   const logItem = document.importNode(logItemT.content, true);

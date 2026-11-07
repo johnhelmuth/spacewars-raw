@@ -4,17 +4,17 @@
   <meta charset="UTF-8">
   <title>Test stuff</title>
   <style>
-    #test-log {
+    #test-log, #drawing-log {
       margin: 2rem;
     }
-    ul#log-list {
+    ul#log-list, ul#drawing-list {
       display: grid;
       grid-template-columns: 3rem 1fr;
       grid-row-gap: 1rem;
       list-style: none;
       padding: 0;
 
-      li.log-row {
+      li.log-row, li.drawing-row {
         grid-column: 1 / -1;
         display: grid;
         grid-template-columns: subgrid;
@@ -36,10 +36,32 @@
         }
       }
     }
+    ul#drawing-list {
+      li.drawing-row {
+        grid-template-areas:
+            "description drawing";
+        align-item: center;
+
+        .label {
+          grid-area: description;
+        }
+        .drawing {
+          grid-area: drawing;
+
+          svg {
+            border: 1px solid grey;
+          }
+        }
+      }
+    }
   </style>
 </head>
 <body>
 <div id="app">
+  <section id="drawing-log">
+    <ul id="drawing-list">
+    </ul>
+  </section>
   <section id="test-log">
     <ul id="log-list">
 
@@ -50,6 +72,11 @@
       <div class="msg"></div>
       <div class="vector-xy"></div>
       <div class="vector-mag-dir"></div>
+    </li>
+  </template>
+  <template id="test-drawing-template">
+    <li class="drawing-row">
+      <span class="drawing-label"></span><span class="drawing"></span>
     </li>
   </template>
 </div>

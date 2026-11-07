@@ -6,6 +6,12 @@ export class TorpedoView extends SpaceObjectView {
 
   constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super(object, options);
+    this.vertices = [
+      { x: 0, y: 32 },
+      { x: 4, y: 29 },
+      { x: 10, y: 32 },
+      { x: 4, y: 35 },
+    ]
   }
 
   shape() {

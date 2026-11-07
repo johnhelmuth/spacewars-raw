@@ -1,16 +1,11 @@
 import {SpaceObjectView, type SpaceObjectViewOptions} from "./SpaceObjectView.ts";
 import type SpaceObject from "../models/SpaceObject.ts";
-import {BoundingBox, type Point} from "../types/geometry.ts";
 
 export class Ship1View extends SpaceObjectView {
 
   constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super(object, options);
-  }
-
-  boundingBox() {
-    const MAX_VALUE = Number.MAX_VALUE;
-    const vertexes = [
+    this.vertices = [
       { x: 1, y: 17 },
       { x: 1, y: 47 },
       { x: 31, y: 17 },
@@ -22,9 +17,6 @@ export class Ship1View extends SpaceObjectView {
       { x: 32, y: 24 },
       { x: 32, y: 40 },
     ];
-    const topPt = {x: MAX_VALUE, y: MAX_VALUE};
-
-    return new BoundingBox();
   }
 
   shape() {

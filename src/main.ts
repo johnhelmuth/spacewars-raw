@@ -1,6 +1,6 @@
 import './style.css'
 import {Ship1View} from "./views/Ship1View.ts";
-import {Ship2View} from "./views/Ship2View.ts";
+// import {Ship2View} from "./views/Ship2View.ts";
 import Scene from "./models/Scene.ts";
 import PhysicsEngine from "./models/PhysicsEngine.ts";
 import World from "./models/World.ts";
@@ -8,8 +8,6 @@ import {Drive, Ship, TorpedoTube} from "./models/Ship.ts";
 import {SpaceObjectView} from "./views/SpaceObjectView.ts";
 import {CollisionEvent} from "./events/CollisionEvent.ts";
 import {Vector} from "./types/geometry.ts";
-import {Torpedo} from "./models/Torpedo.ts";
-import {TorpedoView} from "./views/TorpedoView.ts";
 
 const screenEl = document.querySelector<HTMLElement>('#screen');
 if (!screenEl) {
@@ -63,21 +61,21 @@ const drive1 = new Drive(9.8, false);
 const tube1 = new TorpedoTube();
 const ship1 = new Ship('ship 1', {x: -500, y: 0}, 0, new Vector({x: 0, y: 0}), drive1, tube1);
 const ship1View = new Ship1View(ship1, viewOptions);
-// const torp1 = new Torpedo('test-torpedo', {x: -400, y: 0}, 0, new Vector({x: 0, y: 0}));
-// const torp1View = new TorpedoView(torp1, viewOptions);
-const drive2 = new Drive(9.8, false);
-const tube2 = new TorpedoTube();
-const ship2 = new Ship('ship 2', {x: 350, y: -116}, 85, new Vector({x: 0, y: 0}), drive2, tube2);
-const ship2View = new Ship2View(ship2, viewOptions);
+// const drive2 = new Drive(9.8, false);
+// const tube2 = new TorpedoTube();
+// const ship2 = new Ship('ship 2', {x: 350, y: -116}, 85, new Vector({x: 0, y: 0}), drive2, tube2);
+// const ship2View = new Ship2View(ship2, viewOptions);
 
 const scene = new Scene(sceneOptions,
   [
     ship1View,
-    ship2View,
-    // torp1View,
+    // ship2View,
   ]
 );
-scene.setupTorpedoTubeListeners([tube1, tube2]);
+scene.setupTorpedoTubeListeners([
+  tube1,
+  // tube2,
+]);
 
 const engine = new PhysicsEngine();
 const world = new World(scene, engine, screenEl);
@@ -114,7 +112,7 @@ stepButton.addEventListener('click', () => {
 })
 
 setupControls(ship1Controls, ship1View);
-setupControls(ship2Controls, ship2View);
+// setupControls(ship2Controls, ship2View);
 
 world.render();
 
@@ -136,10 +134,10 @@ const shipsCtlKeyMap = new Map<string, ShipCtlKeyBinding>([
   ["KeyS", {"ship": ship1, "action": "drive"}],
   ["KeyW", {"ship": ship1, "action": "torpedo"}],
 
-  ["ArrowLeft", {"ship": ship2, "action": "rotate-left"}],
-  ["ArrowRight", {"ship": ship2, "action": "rotate-right"}],
-  ["ArrowDown", {"ship": ship2, "action": "drive"}],
-  ["ArrowUp", {"ship": ship2, "action": "torpedo"}],
+  // ["ArrowLeft", {"ship": ship2, "action": "rotate-left"}],
+  // ["ArrowRight", {"ship": ship2, "action": "rotate-right"}],
+  // ["ArrowDown", {"ship": ship2, "action": "drive"}],
+  // ["ArrowUp", {"ship": ship2, "action": "torpedo"}],
 ]);
 
 function convertKeyToControl(keyCode: string): ShipCtlKeyBinding | undefined {

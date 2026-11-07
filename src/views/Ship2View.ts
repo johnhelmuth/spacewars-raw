@@ -5,6 +5,12 @@ export class Ship2View extends SpaceObjectView {
 
   constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super(object, options);
+    this.vertices = [
+      { x: 2, y: 32 },
+      { x: 63, y: 48 },
+      { x: 32, y: 32 },
+      { x: 63, y: 16 },
+    ]
   }
 
   shape() {
