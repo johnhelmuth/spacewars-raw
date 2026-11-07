@@ -4,7 +4,7 @@ import {Ship2View} from "./views/Ship2View.ts";
 import Scene from "./models/Scene.ts";
 import PhysicsEngine from "./models/PhysicsEngine.ts";
 import World from "./models/World.ts";
-import {Drive, Ship} from "./models/Ship.ts";
+import {Drive, Ship, TorpedoTube} from "./models/Ship.ts";
 import {SpaceObjectView} from "./views/SpaceObjectView.ts";
 import {CollisionEvent} from "./events/CollisionEvent.ts";
 import {Vector} from "./types/geometry.ts";
@@ -45,11 +45,13 @@ if (! userMessageEl) {
 const dimensions = {width: 1000, height: 1000};
 
 const drive1 = new Drive(9.8, false);
-const ship1 = new Ship('ship 1', {x: 0, y: 350}, 10, new Vector({x: 0, y: 0}), drive1);
+const tube1 = new TorpedoTube();
+const ship1 = new Ship('ship 1', {x: 0, y: 350}, 10, new Vector({x: 0, y: 0}), drive1, tube1);
 const ship1View = new Ship1View(ship1, {dimensions});
 
 const drive2 = new Drive(9.8, false);
-const ship2 = new Ship('ship 2', { x: 350, y: -116 }, 85, new Vector({ x: 0, y: 0}), drive2);
+const tube2 = new TorpedoTube();
+const ship2 = new Ship('ship 2', { x: 350, y: -116 }, 85, new Vector({ x: 0, y: 0}), drive2, tube2);
 const ship2View = new Ship2View(ship2, {dimensions});
 
 const scene = new Scene(
@@ -62,9 +64,10 @@ const scene = new Scene(
     },
     [
       ship1View,
-      ship2View
+      ship2View,
     ]
 );
+scene.setupTorpedoTubeListeners([tube1, tube2]);
 
 const engine = new PhysicsEngine();
 const world = new World(scene, engine, screenEl);
@@ -115,16 +118,18 @@ roundScreenControl.addEventListener('change', (e: Event) => {
   }
 })
 
-type ShipCtlKeyBinding = { ship: Ship, action: 'rotate-left' | 'rotate-right' | 'drive' };
+type ShipCtlKeyBinding = { ship: Ship, action: 'rotate-left' | 'rotate-right' | 'drive' | 'torpedo' };
 
 const shipsCtlKeyMap = new Map<string, ShipCtlKeyBinding>([
   ["KeyA", {"ship": ship1, "action": "rotate-left"}],
   ["KeyD", {"ship": ship1, "action": "rotate-right"}],
   ["KeyS", {"ship": ship1, "action": "drive"}],
+  ["KeyW", {"ship": ship1, "action": "torpedo"}],
 
   ["ArrowLeft", {"ship": ship2, "action": "rotate-left"}],
   ["ArrowRight", {"ship": ship2, "action": "rotate-right"}],
   ["ArrowDown", {"ship": ship2, "action": "drive"}],
+  ["ArrowUp", {"ship": ship2, "action": "torpedo"}],
 ]);
 
 function convertKeyToControl(keyCode: string): ShipCtlKeyBinding | undefined {
@@ -147,6 +152,9 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       break;
     case "drive":
       binding.ship.switchDriveOn();
+      break;
+    case "torpedo":
+      binding.ship.fireTorpedo();
       break;
   }
 })

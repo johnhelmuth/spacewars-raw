@@ -1,6 +1,12 @@
-import type {SpaceObjectView} from "../views/SpaceObjectView.ts";
+import {SpaceObjectView} from "../views/SpaceObjectView.ts";
 import {BoundingBox, type Point} from "../types/geometry.ts";
 import {type WallType} from "../events/CollisionEvent.ts";
+import {TorpedoTube} from "./Ship.ts";
+import {TorpedoView} from "../views/TorpedoView.ts";
+import {Torpedo} from "./Torpedo.ts";
+import {TorpedoEvent} from "../events/TorpedoEvent.ts";
+import {TorpedoSelfDestructEvent} from "../events/TorpedoSelfDestructEvent.ts";
+import type SpaceObject from "./SpaceObject.ts";
 
 /**
  * Scene
@@ -17,6 +23,8 @@ export default class Scene extends EventTarget {
   objectScaleWidth: number;
   objectScaleHeight: number;
   scaledBoundingBox?: BoundingBox;
+  tubes = [] as TorpedoTube[];
+  torpedoDestructHandler: (e: Event) => void;
 
   constructor(options: SceneOptions, objectViews?: SpaceObjectView[]) {
     super();
@@ -30,6 +38,7 @@ export default class Scene extends EventTarget {
 
     this.objectScaleWidth = (this.options.dimensions.width / 1000);
     this.objectScaleHeight = (this.options.dimensions.width / 1000);
+    this.torpedoDestructHandler = this.handleTorpedoDestruct.bind(this);
   }
 
   setScaledBoundingBox(scaledBoundingBox: BoundingBox) {
@@ -75,6 +84,18 @@ export default class Scene extends EventTarget {
     this.objectViews.push(ov);
   }
 
+  removeObject(ov: SpaceObjectView | SpaceObject) {
+    let idx = undefined as number | undefined;
+    if (ov instanceof SpaceObjectView) {
+      idx = this.objectViews.indexOf(ov);
+    } else { /* It's a SpaceObject, find the matching SpaceObjectView */
+      idx = this.objectViews.findIndex(search => search.object === ov);
+    }
+    if (idx >= 0) {
+      this.objectViews.splice(idx, 1);
+    }
+  }
+
   collidesWith(ov: SpaceObjectView) {
     for (const oov of this.objectViews) {
       if (oov === ov) {
@@ -106,6 +127,36 @@ export default class Scene extends EventTarget {
       return 'west';
     }
     return false;
+  }
+
+  setupTorpedoTubeListeners(tubes: TorpedoTube[]) {
+    this.tubes = tubes;
+    for (const t of this.tubes) {
+      t.addEventListener('torpedo', this.handleTorpedo.bind(this));
+    }
+  }
+
+  handleTorpedo(torpedoEvent:Event) {
+    if (torpedoEvent instanceof TorpedoEvent) {
+      if (typeof torpedoEvent.torpedo !== 'undefined') {
+        this.createNewTorpedoView(torpedoEvent.torpedo);
+      }
+    }
+  }
+
+  handleTorpedoDestruct(torpedoDestructEvent: Event) {
+    if (torpedoDestructEvent instanceof TorpedoSelfDestructEvent) {
+      if (typeof torpedoDestructEvent.torpedo !== 'undefined') {
+        torpedoDestructEvent.torpedo.removeEventListener('torpedo-destruct', this.torpedoDestructHandler);
+        this.removeObject(torpedoDestructEvent.torpedo);
+      }
+    }
+  }
+
+  createNewTorpedoView(t: Torpedo) {
+    const tView = new TorpedoView(t, { dimensions: this.dimensions });
+    this.addObject(tView);
+    t.addEventListener('torpedo-destruct', this.torpedoDestructHandler);
   }
 }
 

@@ -97,4 +97,8 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
   isCollision(ov: SpaceObjectViewInterface): boolean {
     return this.boundingBox().boxIntersects(ov.boundingBox());
   }
+
+  tick(timePeriod: number) {
+    this.object.tick(timePeriod);
+  }
 }

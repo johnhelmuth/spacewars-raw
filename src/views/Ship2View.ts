@@ -12,5 +12,4 @@ export class Ship2View extends SpaceObjectView {
       <path d="M 2 32 L 63 48 L 32 32 L 63 16 Z" stroke-linejoin="miter"/>
     `;
   }
-
 }

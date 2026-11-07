@@ -175,6 +175,12 @@ p {
       stroke-width: 1px;
     }
 
+    & .torpedo {
+      stroke: #00ff00;
+      stroke-width: 1px;
+      fill: #00ff00;
+    }
+
     & .object-vector {
       stroke: lightblue;
       stroke-width: 1px;

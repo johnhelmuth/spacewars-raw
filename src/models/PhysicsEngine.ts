@@ -43,6 +43,7 @@ export default class PhysicsEngine extends EventTarget {
       if (collidesWith) {
         this.handleCollision(ov, collidesWith, lastPos);
       }
+      ov.tick(timePeriod);
     }
     this.ticks++;
   }

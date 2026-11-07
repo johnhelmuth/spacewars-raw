@@ -1,5 +1,7 @@
 import SpaceObject from "./SpaceObject.ts";
-import {type Angle, LIGHT_SPEED, type Point, Velocity} from "../types/geometry.ts";
+import {type Angle, LIGHT_SPEED, type Point, translateVector, Vector, Velocity} from "../types/geometry.ts";
+import {Torpedo} from "./Torpedo.ts";
+import {TorpedoEvent} from "../events/TorpedoEvent.ts";
 
 export class Drive {
   /** _acceleration is measured in meters/second **/
@@ -32,18 +34,42 @@ export class Drive {
   }
 }
 
+export class TorpedoTube extends EventTarget {
+
+  index = 0;
+
+  constructor() {
+    super();
+  }
+
+  fireTorpedo(ship: SpaceObject) {
+    const { position, facing, velocity } = ship;
+    const initPosition = translateVector(position, new Vector({direction: facing, magnitude: 64}))
+    const initVelocity = velocity.addVector( new Velocity({ magnitude: 500, direction: facing }))
+    const t = new Torpedo(
+      `${ship.name} torpedo ${this.index++}`,
+      initPosition,
+      facing,
+      initVelocity
+    );
+    this.dispatchEvent(new TorpedoEvent(ship, t))
+  }
+}
+
 export type RotateDirection = 'not' | 'left' | 'right';
 
 export class Ship extends SpaceObject {
 
   drive: Drive;
+  tube: TorpedoTube;
   rotateAnglePerSecond: number;
   rotateDirection: RotateDirection;
 
-  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, mass: number = 1) {
+  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, tube: TorpedoTube, mass: number = 1) {
     super(name, position, facing, velocity, mass);
     this.type = 'ship';
     this.drive = drive;
+    this.tube = tube;
     this.rotateAnglePerSecond = 60; // Degrees per second
     this.rotateDirection = 'not';
   }
@@ -96,6 +122,10 @@ export class Ship extends SpaceObject {
         this.rotate(rotateAngle);
         break;
     }
+  }
+
+  fireTorpedo() {
+    this.tube.fireTorpedo(this);
   }
 
   engineStatus(): boolean {
