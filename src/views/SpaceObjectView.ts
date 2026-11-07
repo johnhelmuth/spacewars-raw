@@ -7,6 +7,7 @@ export const OBJECT_SIZE_HEIGHT = 64;
 
 export interface SpaceObjectViewOptions {
   dimensions: { width: number; height: number };
+  showGrid: boolean;
 }
 
 export interface SpaceObjectViewInterface {
@@ -58,7 +59,6 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
     }
   }
 
-
   vectorLineRender() {
     return `<path class="object-vector" d="M ${this.object.position.x} ${this.object.position.y} L ${this.object.position.x + 100} ${this.object.position.y}" stroke-dasharray="- - -"/>`;
   }
@@ -85,7 +85,7 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
             viewBox="0 0 ${OBJECT_SIZE_HEIGHT} ${OBJECT_SIZE_WIDTH}"
             preserveAspectRatio="xMidYMid meet"
           >
-            <!-- <rect x="0" y="0" width="${OBJECT_SIZE_WIDTH}" height="${OBJECT_SIZE_HEIGHT}" fill="#5f5f5f"/> -->
+             ${this.options.showGrid ? `<rect x="0" y="0" width="${OBJECT_SIZE_WIDTH}" height="${OBJECT_SIZE_HEIGHT}" stroke-width="0.5" fill="transparent"/>` : ''} 
             <g>
               ${this.shape()}
               ${showVectors ? this.vectorLineRender() : ''}
@@ -98,7 +98,7 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
     return this.boundingBox().boxIntersects(ov.boundingBox());
   }
 
-  tick(timePeriod: number) {
-    this.object.tick(timePeriod);
+  tick({timePeriod, timestamp}: {timePeriod: number, timestamp: DOMHighResTimeStamp}) {
+    this.object.tick({timePeriod, timestamp});
   }
 }

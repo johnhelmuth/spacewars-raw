@@ -34,25 +34,68 @@ export class Drive {
   }
 }
 
+const MAX_TORPEDOES_IN_QUEUE = 6;
+const TORPEDO_COOL_DOWN_PERIOD = .7; /* Second */
+
 export class TorpedoTube extends EventTarget {
 
   index = 0;
+
+  ship: Ship | undefined;
+
+  /* fireRate {number} How frequently can a torpedo be fired, in seconds. */
+  fireRate = 1/6;
+
+  /* Number of seconds until next torpedo launch can happen. */
+  torpedoCooldown = 0;
+
+  /* torpedoQueue - How many torpedoes are queued up to be fired. */
+  torpedoQueue = 0;
 
   constructor() {
     super();
   }
 
-  fireTorpedo(ship: SpaceObject) {
-    const { position, facing, velocity } = ship;
+  get installed() {
+    return typeof this.ship !== 'undefined'
+  };
+
+  setShip(ship: Ship) {
+    this.ship = ship;
+  }
+
+  fireTorpedo() {
+    if (this.torpedoCooldown > 0) {
+      if (this.torpedoQueue < MAX_TORPEDOES_IN_QUEUE) {
+        this.torpedoQueue++;
+      }
+      console.log('TorpedoTube.fireTorpedo() torpedo queued: ', this.torpedoQueue);
+      return;
+    }
+    const { position, facing } = this.ship as Ship;
     const initPosition = translateVector(position, new Vector({direction: facing, magnitude: 64}))
-    const initVelocity = velocity.addVector( new Velocity({ magnitude: 500, direction: facing }))
+    const initVelocity = new Velocity({ magnitude: 500, direction: facing })
     const t = new Torpedo(
-      `${ship.name} torpedo ${this.index++}`,
+      `${this.ship?.name} torpedo ${this.index++}`,
       initPosition,
       facing,
       initVelocity
     );
-    this.dispatchEvent(new TorpedoEvent(ship, t))
+    if (this.torpedoQueue > 0) {
+      this.torpedoQueue--;
+    }
+    this.torpedoCooldown = TORPEDO_COOL_DOWN_PERIOD;
+    console.log('TorpedoTube.fireTorpedo() torpedo fired. this.torpedoQueue', this.torpedoQueue);
+    console.log('TorpedoTube.fireTorpedo() this.torpedoCooldown: ', this.torpedoCooldown);
+    this.dispatchEvent(new TorpedoEvent(this.ship, t))
+  }
+
+  tick(timePeriod: number) {
+    if (this.torpedoCooldown > 0) {
+      this.torpedoCooldown -= timePeriod;
+    } else if (this.torpedoQueue > 0) {
+      this.fireTorpedo()
+    }
   }
 }
 
@@ -69,6 +112,7 @@ export class Ship extends SpaceObject {
     super(name, position, facing, velocity, mass);
     this.type = 'ship';
     this.drive = drive;
+    tube.setShip(this);
     this.tube = tube;
     this.rotateAnglePerSecond = 60; // Degrees per second
     this.rotateDirection = 'not';
@@ -125,10 +169,15 @@ export class Ship extends SpaceObject {
   }
 
   fireTorpedo() {
-    this.tube.fireTorpedo(this);
+    this.tube.fireTorpedo();
   }
 
   engineStatus(): boolean {
     return !! this.drive.acceleration;
+  }
+
+  tick({timePeriod}: { timePeriod: number, timestamp: DOMHighResTimeStamp }) {
+    this.rotateTick(timePeriod);
+    this.tube.tick(timePeriod);
   }
 }

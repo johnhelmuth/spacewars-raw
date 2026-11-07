@@ -21,10 +21,8 @@ export default class PhysicsEngine extends EventTarget {
     const timePeriod = typeof this.lastTimestamp === "number" ? (timestamp - this.lastTimestamp)/1000 : 1/60;
     this.lastTimestamp = timestamp;
     for (const ov of scene) {
+      ov.tick({timePeriod, timestamp});
       const o = ov.object;
-      if (o.isShip()) {
-        o.rotateTick(timePeriod);
-      }
       const lastPos = o.position;
       const newVelocity = this.applyAccelerationToVelocity(o);
       const newPosition = translateVector(o.position, this.applyTimePeriod(newVelocity, timePeriod));
@@ -43,7 +41,6 @@ export default class PhysicsEngine extends EventTarget {
       if (collidesWith) {
         this.handleCollision(ov, collidesWith, lastPos);
       }
-      ov.tick(timePeriod);
     }
     this.ticks++;
   }

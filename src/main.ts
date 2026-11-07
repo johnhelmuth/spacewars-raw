@@ -8,17 +8,19 @@ import {Drive, Ship, TorpedoTube} from "./models/Ship.ts";
 import {SpaceObjectView} from "./views/SpaceObjectView.ts";
 import {CollisionEvent} from "./events/CollisionEvent.ts";
 import {Vector} from "./types/geometry.ts";
+import {Torpedo} from "./models/Torpedo.ts";
+import {TorpedoView} from "./views/TorpedoView.ts";
 
 const screenEl = document.querySelector<HTMLElement>('#screen');
-if (! screenEl) {
+if (!screenEl) {
   throw new Error('ScreenEl not found!');
 }
 const startStopButton = document.querySelector<HTMLElement>('#start-stop-button');
-if (! startStopButton) {
+if (!startStopButton) {
   throw new Error('Start stop button is missing!');
 }
 const stepButton = document.querySelector<HTMLElement>('#step-button');
-if (! stepButton) {
+if (!stepButton) {
   throw new Error('Step button is missing!');
 }
 
@@ -28,44 +30,52 @@ if (!roundScreenControl) {
 }
 
 const ship1Controls = document.querySelector<HTMLElement>('#ship-1-controls');
-if (! ship1Controls) {
+if (!ship1Controls) {
   throw new Error('Ship 1 controls are missing!');
 }
 
 const ship2Controls = document.querySelector<HTMLElement>('#ship-2-controls');
-if (! ship2Controls) {
+if (!ship2Controls) {
   throw new Error('Ship 2 controls are missing!');
 }
 
 const userMessageEl = document.querySelector<HTMLElement>('.user-messages');
-if (! userMessageEl) {
+if (!userMessageEl) {
   throw new Error('User messages are missing!');
 }
 
 const dimensions = {width: 1000, height: 1000};
+const showGrid = true;
+const sceneOptions = {
+  dimensions,
+  edgeInset: -16,
+  showGrid,
+  roundScreen: false,
+  showVectors: false,
+};
+
+const viewOptions = {
+  dimensions,
+  showGrid,
+}
 
 const drive1 = new Drive(9.8, false);
 const tube1 = new TorpedoTube();
-const ship1 = new Ship('ship 1', {x: 0, y: 350}, 10, new Vector({x: 0, y: 0}), drive1, tube1);
-const ship1View = new Ship1View(ship1, {dimensions});
-
+const ship1 = new Ship('ship 1', {x: -500, y: 0}, 0, new Vector({x: 0, y: 0}), drive1, tube1);
+const ship1View = new Ship1View(ship1, viewOptions);
+// const torp1 = new Torpedo('test-torpedo', {x: -400, y: 0}, 0, new Vector({x: 0, y: 0}));
+// const torp1View = new TorpedoView(torp1, viewOptions);
 const drive2 = new Drive(9.8, false);
 const tube2 = new TorpedoTube();
-const ship2 = new Ship('ship 2', { x: 350, y: -116 }, 85, new Vector({ x: 0, y: 0}), drive2, tube2);
-const ship2View = new Ship2View(ship2, {dimensions});
+const ship2 = new Ship('ship 2', {x: 350, y: -116}, 85, new Vector({x: 0, y: 0}), drive2, tube2);
+const ship2View = new Ship2View(ship2, viewOptions);
 
-const scene = new Scene(
-    {
-      dimensions,
-      edgeInset: -16,
-      showGrid: true,
-      roundScreen: false,
-      showVectors: false,
-    },
-    [
-      ship1View,
-      ship2View,
-    ]
+const scene = new Scene(sceneOptions,
+  [
+    ship1View,
+    ship2View,
+    // torp1View,
+  ]
 );
 scene.setupTorpedoTubeListeners([tube1, tube2]);
 
@@ -179,11 +189,11 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
   const objectId = controlBlock.dataset.objectId;
 
   const positionXControl = controlBlock.querySelector<HTMLInputElement>('.position-x');
-  if (! positionXControl) {
+  if (!positionXControl) {
     throw new Error(`${objectId} position X control not available!`);
   }
   const positionYControl = controlBlock.querySelector<HTMLInputElement>('.position-y');
-  if (! positionYControl) {
+  if (!positionYControl) {
     throw new Error(`${objectId} position Y control not available!`);
   }
   const facingControl = controlBlock.querySelector<HTMLFormElement>('.ship-facing');

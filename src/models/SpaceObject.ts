@@ -114,6 +114,6 @@ export default class SpaceObject extends EventTarget implements SpaceObjectInter
     this.dispatchEvent(new ObjectUpdatedEvent());
   }
 
-  tick(timePeriod: number) { timePeriod }
+  tick({timePeriod, timestamp}: { timePeriod: number, timestamp: DOMHighResTimeStamp }) { timePeriod; timestamp }
 
 }

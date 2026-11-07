@@ -14,7 +14,7 @@ export class Torpedo extends SpaceObject {
     this.timer = SELF_DESTRUCT_TIME;
   }
 
-  tick(timePeriod: number) {
+  tick({ timePeriod }: { timePeriod: number, timestamp: DOMHighResTimeStamp }) {
     this.timer -= timePeriod;
     if (this.timer <= 0) {
       this.dispatchEvent(new TorpedoSelfDestructEvent(this));

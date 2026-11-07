@@ -10,7 +10,7 @@ export class TorpedoView extends SpaceObjectView {
 
   shape() {
     return `
-      <path d="M 32 32 L 38 29 L 42 32 L 38 35 M 32 32 L 53 32" stroke-width="0.5"/>
+      <path d="M 0 32 L 4 29 L 10 32 L 4 35 Z" stroke-width="0.5"/>
     `;
   }
 
