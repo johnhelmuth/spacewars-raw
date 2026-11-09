@@ -2,7 +2,7 @@ import SpaceObject from "./SpaceObject.ts";
 import {type Angle, type Point, Velocity} from "../types/geometry.ts";
 import {TorpedoSelfDestructEvent} from "../events/TorpedoSelfDestructEvent.ts";
 
-const SELF_DESTRUCT_TIME = 30; // Seconds
+const SELF_DESTRUCT_TIME = 8; // Seconds
 
 export class Torpedo extends SpaceObject {
 

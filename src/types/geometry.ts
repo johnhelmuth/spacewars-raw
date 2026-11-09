@@ -233,7 +233,7 @@ export class BoundingBox implements BoundingBoxInterface {
       {x: this.x, y: this.y},
       {x: this.x2, y: this.y},
       {x: this.x, y: this.y2},
-      {x: this.x2, y: this.y2}
+      {x: this.x2, y: this.y2},
     ]
   }
 
@@ -265,10 +265,37 @@ export class BoundingBox implements BoundingBoxInterface {
     return false;
   }
 
-  containsBox(box: BoundingBox) {
-    const corners = box.corners;
-    return corners.every((p) => this.pointIntersects(p))
+  containsAllPoints(points: Point[]) {
+    return points.every((p) => this.pointIntersects(p))
   }
+}
+
+export function pointsToBoundingBox(vertices: Point[]) {
+  const MAX_VALUE = Number.MAX_VALUE;
+  let top = MAX_VALUE;
+  let right = -MAX_VALUE;
+  let bottom = -MAX_VALUE;
+  let left = MAX_VALUE;
+
+  for (const v of vertices) {
+    if (v.y < top) {
+      top = v.y;
+    }
+    if (v.y > bottom) {
+      bottom = v.y;
+    }
+    if (v.x < left) {
+      left = v.x;
+    }
+    if (v.x > right) {
+      right = v.x;
+    }
+  }
+
+  const width = right - left;
+  const height = bottom - top;
+
+  return new BoundingBox({ x: left, y: top, width, height });
 }
 
 export const degreeToRadiansFactor = Math.fround(Math.PI / 180);
@@ -319,21 +346,26 @@ export function translateVector(p: Point, v: Vector): Point {
   }
 }
 
-export function rotateVertices(verts: Point[], rotPt: Point, direction: Angle) {
+export function rotateVertices(verts: Point[], rotPt: Point, direction: Angle, v? : Vector) {
+  const needsTranslate = typeof v !== 'undefined';
   return verts.map((p) => {
-    return rotatePoint(p, rotPt, direction)
+    const rP = rotatePoint(p, rotPt, direction)
+    if (needsTranslate) {
+      return translateVector(rP, v);
+    }
+    return rP;
   })
 }
 
 export function rotatePoint(p: Point, rotPt: Point, direction: Angle) {
-  const directionRad = toRadians(direction);
+  const directionRad = toRadians(-direction);
   const pO = {
     x: p.x - rotPt.x,
     y: p.y - rotPt.y,
   }
   const pR = {
-    x: pO.x * Math.cos(directionRad) + pO.y * Math.sin(directionRad),
-    y: -pO.x * Math.sin(directionRad) + pO.y * Math.cos(directionRad),
+    x: Math.fround(pO.x * Math.cos(directionRad)) + Math.fround(pO.y * Math.sin(directionRad)),
+    y: -Math.fround(pO.x * Math.sin(directionRad)) + Math.fround(pO.y * Math.cos(directionRad)),
   }
   const p1 = {
     x: pR.x + rotPt.x,
@@ -365,6 +397,7 @@ export function magDirToPoint(magnitude: number, direction: Angle): Point {
 
 export function pointToMagDir(p: Point) {
   const magnitude = Math.fround(Math.sqrt(p.x * p.x + p.y * p.y));
-  const direction = Math.fround(angleClamp(Math.atan2(p.y, p.x) * 180 / Math.PI));
+  // TODO: This is still not right. Watch behavior when the max velocity is reached.
+  const direction = Math.fround(angleClamp((Math.atan2(p.y, p.x) * 180 / Math.PI))-90);
   return { magnitude, direction };
 }

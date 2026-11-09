@@ -4,7 +4,7 @@ import {Ship} from "./Ship.ts";
 import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
 import { LIGHT_SPEED } from '../types/geometry.ts';
 
-const DEFAULT_ROTATE_ANGLE = 5; // Rotate 5 degrees by default.
+const DEFAULT_ROTATE_ANGLE = 1; // Rotate 5 degrees by default.
 
 export interface SpaceObjectInterface {
 

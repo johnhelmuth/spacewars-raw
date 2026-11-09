@@ -1,5 +1,5 @@
 import {SpaceObjectView} from "../views/SpaceObjectView.ts";
-import {BoundingBox, type Point} from "../types/geometry.ts";
+import {BoundingBox, type Point, pointsToBoundingBox} from "../types/geometry.ts";
 import {type WallType} from "../events/CollisionEvent.ts";
 import {TorpedoTube} from "./Ship.ts";
 import {TorpedoView} from "../views/TorpedoView.ts";
@@ -107,13 +107,14 @@ export default class Scene extends EventTarget {
     }
   }
 
-  wallIntersection(obox: BoundingBox, nextPosition: Point): WallType | false {
+  wallIntersection(corners: Point[], nextPosition: Point): WallType | false {
     if (typeof this.scaledBoundingBox === "undefined") {
       return false;
     }
-    if (this.scaledBoundingBox.containsBox(obox)) {
+    if (this.scaledBoundingBox.containsAllPoints(corners)) {
       return false;
     }
+    const obox = pointsToBoundingBox(corners);
     if (obox.top < this.scaledBoundingBox.top && nextPosition.y < this.scaledBoundingBox.top) {
       return 'north'
     }

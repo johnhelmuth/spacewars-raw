@@ -1,6 +1,7 @@
 import type SpaceObject from "../models/SpaceObject.ts";
-import {type Point, rotateVertices} from "../types/geometry.ts";
+import {type Point, pointsToBoundingBox, rotateVertices, translateVector, Vector} from "../types/geometry.ts";
 import {BoundingBox} from "../types/geometry.ts";
+import {Renderer} from "./Renderer.ts";
 
 export const OBJECT_SIZE_WIDTH = 64;
 export const OBJECT_SIZE_HEIGHT = 64;
@@ -19,21 +20,24 @@ export interface SpaceObjectViewInterface {
 
   vertices: Point[];
 
-  boundingBox(): BoundingBox;
+  boundingBox: BoundingBox;
 
   render(showVectors: boolean): string;
 
   isCollision(ov: SpaceObjectViewInterface): boolean;
 }
 
-export abstract class SpaceObjectView extends EventTarget implements SpaceObjectViewInterface {
+export abstract class SpaceObjectView extends Renderer implements SpaceObjectViewInterface {
 
   object: SpaceObject;
   options: SpaceObjectViewOptions;
   objectScaleWidth: number;
   objectScaleHeight: number;
+
+  /* rotatePoint {Point} - The point in the object's coordinate system about which it rotates as its facing chagnes. */
   rotatePoint: Point;
   vertices = [] as Point[];
+  _boundingBox?: BoundingBox;
 
   protected constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super();
@@ -41,59 +45,28 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
     this.options = options;
     this.objectScaleWidth = 1;
     this.objectScaleHeight = 1;
-    this.rotatePoint = {x: OBJECT_SIZE_WIDTH / 2, y: OBJECT_SIZE_HEIGHT / 2}
+    this.rotatePoint = {x: 0, y: 0};
   }
 
   abstract shape(): string;
 
-  boundingBox(): BoundingBox {
-    const {x, y} = this.object.position;
-    const localBB = this.objectLocalBoundingBox();
-    return new BoundingBox({...localBB, x: localBB.x + x, y: localBB.y + y});
-  }
-
-  _verticesToBoundingBox(vertices: Point[]) {
-    const MAX_VALUE = Number.MAX_VALUE;
-    let top = MAX_VALUE;
-    let right = -MAX_VALUE;
-    let bottom = -MAX_VALUE;
-    let left = MAX_VALUE;
-
-    for (const v of vertices) {
-      if (v.y < top) {
-        top = v.y;
-      }
-      if (v.y > bottom) {
-        bottom = v.y;
-      }
-      if (v.x < left) {
-        left = v.x;
-      }
-      if (v.x > right) {
-        right = v.x;
-      }
+  get boundingBox(): BoundingBox {
+    if (typeof this._boundingBox === "undefined") {
+      this._boundingBox = pointsToBoundingBox(this.vertices);
     }
-
-    const width = right - left;
-    const height = bottom - top;
-
-    return new BoundingBox({ x: left, y: top, width, height });
+    return this._boundingBox;
   }
 
-  objectLocalBoundingBox() {
-    return this._verticesToBoundingBox(this.vertices);
-  }
-
-  rotatedObjectLocalBoundingBox() {
-    const rotatedVertices = rotateVertices(this.vertices, { x: 0, y: 0 }, this.object.facing);
-    return this._verticesToBoundingBox(rotatedVertices);
-  }
-
-  offsetObject(p: Point): Point {
-    return {
-      x: p.x - OBJECT_SIZE_WIDTH/2,
-      y: p.y - OBJECT_SIZE_HEIGHT/2,
-    }
+  globalCornersRotated() {
+    const bb = this.boundingBox;
+    const corners = rotateVertices(
+      bb.corners,
+      this.rotatePoint,
+      this.object.facing,
+      new Vector(this.object.position)
+    )
+    ;
+    return corners;
   }
 
   vectorLineRender() {
@@ -101,39 +74,69 @@ export abstract class SpaceObjectView extends EventTarget implements SpaceObject
   }
 
   render(showVectors: boolean) {
-    const {x, y} = this.offsetObject(this.object.position);
     const facing = this.object.facing;
+    const gRotatePoint = translateVector(this.object.position, new Vector(this.rotatePoint));
     const objectType = this.object.type;
     const scaledRotatePoint = {
-      x: this.rotatePoint.x * this.objectScaleWidth,
-      y: this.rotatePoint.y * this.objectScaleHeight,
+      x: gRotatePoint.x * this.objectScaleWidth,
+      y: gRotatePoint.y * this.objectScaleHeight,
     };
-    const scaledPos = {
-      x: x * this.objectScaleWidth,
-      y: y * this.objectScaleHeight,
-    };
-    const bb = this.objectLocalBoundingBox();
+    const bb = this.boundingBox;
+    const globalOffsetPos = translateVector(this.object.position, new Vector({x: bb.x, y: bb.y}));
+    const [topLeft, topRight, botLeft, botRight] = this.globalCornersRotated();
+    const rotBB = pointsToBoundingBox([topLeft, topRight, botLeft, botRight]);
     return `
           <svg
             class="space-object ${objectType}"
-            height="${this.objectScaleHeight*OBJECT_SIZE_HEIGHT}" width="${this.objectScaleWidth*OBJECT_SIZE_WIDTH}"
-            x="${scaledPos.x}px"
-            y="${scaledPos.y}px"
-            style="transform-origin: calc(${scaledPos.x}px + ${scaledRotatePoint.x}px) calc(${scaledPos.y}px + ${scaledRotatePoint.y}px); transform: rotate(${facing + 180}deg);"
-            viewBox="0 0 ${OBJECT_SIZE_HEIGHT} ${OBJECT_SIZE_WIDTH}"
-            preserveAspectRatio="xMidYMid meet"
+            height="${bb.height}" width="${bb.width}"
+            x="${globalOffsetPos.x}px"
+            y="${globalOffsetPos.y}px"
+            style="transform-origin: calc(${scaledRotatePoint.x}px) calc(${scaledRotatePoint.y}px); transform: rotate(${facing}deg);"
+              viewBox="${this.bbToViewBox(bb)}"
           >
-             ${this.options.showGrid ? `<rect x="${bb.x}" y="${bb.y}" width="${bb.width}" height="${bb.height}" stroke-width="0.5" fill="transparent"/>` : ''} 
             <g>
               ${this.shape()}
               ${showVectors ? this.vectorLineRender() : ''}
             </g>
+            <!--
+             ${this.options.showGrid ? `
+                <g class="calculated-bb">
+                  <rect x="${bb.x}" y="${bb.y}" width="${bb.width}" height="${bb.height}" stroke-width="0.5" fill="transparent"/>
+                  <circle cx="${bb.left}" cy="${bb.top}" r="3" fill="blue" stroke-width="0"/>
+                  <circle cx="${bb.right}" cy="${bb.top}" r="3" fill="lime" stroke-width="0" />
+                  <circle cx="${bb.right}" cy="${bb.bottom}" r="3" fill="orange" stroke-width="0" />
+                  <circle cx="${bb.left}" cy="${bb.bottom}" r="3" fill="purple" stroke-width="0" />
+                </g>
+              ` : ''
+              } 
+             -->
           </svg>
+          ${this.options.showGrid ? `
+            <svg 
+              class="other-bb" 
+              height="${rotBB.height}" 
+              width="${rotBB.width}"
+              x="${rotBB.x}px" y="${rotBB.y}px"
+              viewBox="${this.bbToViewBox(rotBB)}"
+              >
+                <g class="calc-bb">
+                  <path d="M ${topLeft.x} ${topLeft.y} L ${topRight.x} ${topRight.y} L ${botRight.x} ${botRight.y} L ${botLeft.x} ${botLeft.y} Z" 
+                        fill="transparent"
+                        stroke="grey"
+                        stroke-width="1"
+                  /> 
+                  <circle cx="${topLeft.x}" cy="${topLeft.y}" r="3" fill="blue" />
+                  <circle cx="${topRight.x}" cy="${topRight.y}" r="3" fill="lime" />
+                  <circle cx="${botRight.x}" cy="${botRight.y}" r="3" fill="orange" />
+                  <circle cx="${botLeft.x}" cy="${botLeft.y}" r="3" fill="purple" />
+                </g>
+              </svg>
+              ` : ''} 
     `;
   }
 
   isCollision(ov: SpaceObjectViewInterface): boolean {
-    return this.boundingBox().boxIntersects(ov.boundingBox());
+    return this.boundingBox.boxIntersects(ov.boundingBox);
   }
 
   tick({timePeriod, timestamp}: {timePeriod: number, timestamp: DOMHighResTimeStamp}) {

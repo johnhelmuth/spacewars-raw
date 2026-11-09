@@ -2,6 +2,7 @@ import type PhysicsEngine from "./PhysicsEngine.ts";
 import type Scene from "./Scene.ts";
 import {TickEvent} from "../events/TickEvent.ts";
 import {BoundingBox} from "../types/geometry.ts";
+import {Renderer} from "../views/Renderer.ts";
 
 /**
  * World
@@ -22,7 +23,7 @@ import {BoundingBox} from "../types/geometry.ts";
  *   handles user controls and passes messages to the appropriate object
  *   handles messages from objects and the physics engine
  */
-export default class World extends EventTarget {
+export default class World extends Renderer {
   scene: Scene;
   engine: PhysicsEngine;
   element: HTMLElement;
@@ -168,7 +169,6 @@ export default class World extends EventTarget {
   }
 
   render() {
-    const {x, y, width, height} = this.scene.boundingBox;
     const sceneSVG = [...this.scene]
         .map(ov => {
           return ov.render(!!this.scene.options.showVectors)
@@ -178,7 +178,7 @@ export default class World extends EventTarget {
           <svg
               xmlns="http://www.w3.org/2000/svg"
               width="100%" height="100%"
-              viewBox="${x} ${y} ${width} ${height}"
+              viewBox="${this.bbToViewBox(this.scene.boundingBox)}"
               preserveAspectRatio="xMidYMid meet"
           >
             ${sceneSVG}
@@ -207,8 +207,10 @@ export default class World extends EventTarget {
         `<circle cx="${x2}" cy="${y2}" r="${dotRadius}" fill="red" />`,
         `<circle cx="${x}" cy="${y2}" r="${dotRadius}" fill="red" />`,
       ]
-      return corners.join('\n');
-
+      return corners.join('\n')
+      + `<circle cx="0" cy="0" r="2" stroke="lightgrey" stroke-width="1" />
+      <!--        <rect x="-32" y="-32" width="64" height="64" stroke="lightgrey" fill="none" />-->
+        `
     }
     return '';
   }

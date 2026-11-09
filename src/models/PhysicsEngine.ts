@@ -33,7 +33,7 @@ export default class PhysicsEngine extends EventTarget {
       o.velocity = newVelocity;
       o.position = newPosition;
       const nextTickPosition = translateVector(o.position, this.applyTimePeriod(o.velocity, timePeriod))
-      const intersectsWall = scene.wallIntersection(ov.boundingBox(), nextTickPosition);
+      const intersectsWall = scene.wallIntersection(ov.globalCornersRotated(), nextTickPosition);
       if (intersectsWall) {
         this.handleCollision(ov, intersectsWall, lastPos);
       }
