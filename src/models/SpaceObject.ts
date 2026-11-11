@@ -2,7 +2,6 @@
 import {type Angle, type Point, Velocity} from '../types/geometry.ts';
 import {Ship} from "./Ship.ts";
 import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
-import { LIGHT_SPEED } from '../types/geometry.ts';
 
 const DEFAULT_ROTATE_ANGLE = 1; // Rotate 5 degrees by default.
 
@@ -54,8 +53,7 @@ export default class SpaceObject extends EventTarget implements SpaceObjectInter
     this.type = 'generic';
     this._position = position;
     this._facing = facing;
-    const {direction} = velocity;
-    this._velocity = new Velocity({ direction, magnitude: Math.min(velocity.magnitude, LIGHT_SPEED) });
+    this._velocity = velocity;
     this.mass = mass;
   }
 

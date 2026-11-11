@@ -24,6 +24,16 @@ export interface Point {
   y: number;
 }
 
+/**
+ * SimplePolygon
+ *
+ * From Wikipedia https://en.wikipedia.org/wiki/Convex_polygon
+ *
+ * > In geometry, a convex polygon is a polygon that is the boundary of a convex set. This means that the line segment between two points of the polygon is contained in the union of the interior and the boundary of the polygon. In particular, it is a simple polygon (not self-intersecting).[1] Equivalently, a polygon is convex if every line that does not contain any edge intersects the polygon in at most two points.
+ */
+export type SimplePolygon = Point[];
+
+
 /** Angle - an angle on the board in degrees */
 export type Angle = number;
 
@@ -162,11 +172,11 @@ export class Vector {
 
 export class Velocity extends Vector {
 
-  constructor(v: {  point?: Point, x?: number; y?: number, magnitude?: number, direction?: Angle }) {
-    super(v);
-    if (super.magnitude > LIGHT_SPEED) { // This calculates magnitude if x, y was supplied to constructor.
-      super.magnitude = LIGHT_SPEED; // This reset x, y if they were supplied to constructor.
+  constructor(magnitude: number, direction: Angle) {
+    if (magnitude > LIGHT_SPEED) {
+      magnitude = LIGHT_SPEED;
     }
+    super({magnitude, direction});
   }
 
   get magnitude() {
@@ -179,13 +189,12 @@ export class Velocity extends Vector {
   }
 
   addVector(v: Velocity) {
-    return new Velocity({
+    const {magnitude, direction} = new Vector({
       x: this.x + v.x,
       y: this.y + v.y,
     })
+    return new Velocity(magnitude, direction);
   }
-
-
 }
 
 export interface BoundingBoxInterface {
@@ -270,6 +279,68 @@ export class BoundingBox implements BoundingBoxInterface {
   }
 }
 
+/**
+ * Determines if a point is inside of polygon.
+ *
+ * Cribbed from solution 1 from "Determining if a point lies on the interior of a polygon" by Paul Bourke,
+ * This algorithm counts the number of times a horizontal line that that contains the point intersects with
+ * a line segment of the polygon. An even number of intersections means the point is outside the polygon, an
+ * odd number means it is inside.
+ *
+ * Discovered article here https://www.eecs.umich.edu/courses/eecs380/HANDOUTS/PROJ2/InsidePoly.html
+ *
+ * @param p {Point}
+ * @param poly {SimplePolygon}
+ *
+ * @returns Boolean - true if the point is inside the polygon.
+ */
+export function pointInsidePoly(p: Point, poly: SimplePolygon) {
+  let counter = 0;
+  let p1 = poly[0];
+
+  for (let i = 1; i <= poly.length; i++) {
+    let p2 = poly[i%(poly.length)]; // Last line segment is from last point to first point.
+    if (p.y > Math.min(p1.y, p2.y)) {
+      if (p.y <= Math.max(p1.y, p2.y)) {
+        if (p.x <= Math.max(p1.x, p2.x)) {
+          if (p1.y != p2.y) {
+            const xIntersects = (p.y-p1.y)*(p2.x-p1.x)/(p2.y-p1.y)+p1.x;
+            if (p1.x == p2.x || p.x <= xIntersects) {
+              counter++;
+            }
+          }
+        }
+      }
+    }
+    p1 = p2;
+  }
+
+  return counter % 2 !== 0;
+}
+
+/**
+ * Simple polygon intersects another simple polygon.
+ *
+ * @param polyA
+ * @param polyB
+ */
+export function polygonIntersects(polyA: SimplePolygon, polyB: SimplePolygon) {
+
+  const aCornersInPolyB = polyA.some((p) => pointInsidePoly(p, polyB));
+
+  if (aCornersInPolyB) {
+    return true;
+  }
+  // Handle the case where polyB is completely contained in polyA.
+  const bCornersInPolyA = polyB.some((p) => pointInsidePoly(p, polyA));
+
+  if (bCornersInPolyA) {
+    return true;
+  }
+
+  return false;
+}
+
 export function pointsToBoundingBox(vertices: Point[]) {
   const MAX_VALUE = Number.MAX_VALUE;
   let top = MAX_VALUE;
@@ -298,8 +369,13 @@ export function pointsToBoundingBox(vertices: Point[]) {
   return new BoundingBox({ x: left, y: top, width, height });
 }
 
-export const degreeToRadiansFactor = Math.fround(Math.PI / 180);
-export const radiansToDegreesFactor = Math.fround(180 / Math.PI);
+export function roundTo(n: number, digits = 15): number {
+  const factor = 10**(digits-1);
+  return Math.fround(Math.fround(n * factor) / factor);
+}
+
+export const degreeToRadiansFactor = roundTo(Math.PI / 180);
+export const radiansToDegreesFactor = roundTo(180 / Math.PI);
 
 /**
  * toDegrees()
@@ -307,7 +383,7 @@ export const radiansToDegreesFactor = Math.fround(180 / Math.PI);
  * Converts an angle (radians) to degrees.
  */
 export function toDegrees(angle: number): Angle {
-  return Math.fround(angle * radiansToDegreesFactor);
+  return roundTo(angle * radiansToDegreesFactor);
 }
 
 /**
@@ -316,7 +392,7 @@ export function toDegrees(angle: number): Angle {
  * Converts an angle (Angle) to radians.
  */
 export function toRadians(degrees: Angle): number {
-  return Math.fround(degrees * degreeToRadiansFactor);
+  return roundTo(degrees * degreeToRadiansFactor);
 }
 
 /**
@@ -326,9 +402,8 @@ export function toRadians(degrees: Angle): number {
  * @param b {[number, number]}
  */
 export function between(a: number, b: [number, number]): boolean {
-  return (
-      b[0] <= a && a <= b[1]
-  );
+  const min = Math.min(b[0], b[1]), max = Math.max(b[0], b[1]);
+  return min <= a && a <= max;
 }
 
 /**
@@ -357,23 +432,6 @@ export function rotateVertices(verts: Point[], rotPt: Point, direction: Angle, v
   })
 }
 
-export function rotatePoint(p: Point, rotPt: Point, direction: Angle) {
-  const directionRad = toRadians(-direction);
-  const pO = {
-    x: p.x - rotPt.x,
-    y: p.y - rotPt.y,
-  }
-  const pR = {
-    x: Math.fround(pO.x * Math.cos(directionRad)) + Math.fround(pO.y * Math.sin(directionRad)),
-    y: -Math.fround(pO.x * Math.sin(directionRad)) + Math.fround(pO.y * Math.cos(directionRad)),
-  }
-  const p1 = {
-    x: pR.x + rotPt.x,
-    y: pR.y + rotPt.y,
-  }
-  return p1;
-}
-
 
 /**
  * Clamps an angle in degrees to be between 0 and 360.
@@ -383,21 +441,54 @@ export function rotatePoint(p: Point, rotPt: Point, direction: Angle) {
  * @returns {number} - The clamped angle.
  */
 export function angleClamp(n: Angle): Angle {
-  const newN = n % 360;
-  return newN < 0 ? (newN + 360) : newN;
+  let newN = n % 360;
+  if (newN < 0) {
+    newN += 360;
+  }
+  if (equalFloat(newN, 360)) {
+    newN = 0;
+  }
+  return newN;
+}
+
+/**
+ * Compares 2 floating point numbers within a threshold.
+ *
+ * @param a {number}
+ * @param b {number}
+ * @param threshold {number} - If the difference between the numbers is less than this, they are equal.
+ */
+export function equalFloat(a: number, b: number, threshold = 0.0001) : boolean {
+  return (Math.abs(a-b) <= threshold);
 }
 
 export function magDirToPoint(magnitude: number, direction: Angle): Point {
-  const directionRad = toRadians(direction);
+  const directionRad = toRadians(direction-90);
   return {
-    x: Math.fround(magnitude * Math.cos(directionRad)),
-    y: Math.fround(magnitude * Math.sin(directionRad))
+    x: roundTo(magnitude * Math.cos(directionRad)),
+    y: roundTo(magnitude * Math.sin(directionRad))
   };
 }
 
 export function pointToMagDir(p: Point) {
-  const magnitude = Math.fround(Math.sqrt(p.x * p.x + p.y * p.y));
-  // TODO: This is still not right. Watch behavior when the max velocity is reached.
-  const direction = Math.fround(angleClamp((Math.atan2(p.y, p.x) * 180 / Math.PI))-90);
+  const magnitude = roundTo(Math.sqrt(p.x * p.x + p.y * p.y));
+  const direction = angleClamp(roundTo((Math.atan2(p.y, p.x) * 180 / Math.PI)+90));
   return { magnitude, direction };
+}
+
+export function rotatePoint(p: Point, rotPt: Point, direction: Angle) {
+  const directionRad = toRadians(-direction);
+  const pO = {
+    x: p.x - rotPt.x,
+    y: p.y - rotPt.y,
+  }
+  const pR = {
+    x: roundTo(pO.x * Math.cos(directionRad)) + roundTo(pO.y * Math.sin(directionRad)),
+    y: -roundTo(pO.x * Math.sin(directionRad)) + roundTo(pO.y * Math.cos(directionRad)),
+  }
+  const p1 = {
+    x: pR.x + rotPt.x,
+    y: pR.y + rotPt.y,
+  }
+  return p1;
 }

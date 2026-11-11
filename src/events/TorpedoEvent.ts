@@ -9,4 +9,7 @@ export class TorpedoEvent extends Event {
     this.torpedo = torpedo;
     this.source = source;
   }
+  clone() {
+    return new TorpedoEvent(this.source, this.torpedo);
+  }
 }

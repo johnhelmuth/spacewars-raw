@@ -141,6 +141,7 @@ export default class Scene extends EventTarget {
     if (torpedoEvent instanceof TorpedoEvent) {
       if (typeof torpedoEvent.torpedo !== 'undefined') {
         this.createNewTorpedoView(torpedoEvent.torpedo);
+        this.dispatchEvent(torpedoEvent.clone());
       }
     }
   }
@@ -150,6 +151,7 @@ export default class Scene extends EventTarget {
       if (typeof torpedoDestructEvent.torpedo !== 'undefined') {
         torpedoDestructEvent.torpedo.removeEventListener('torpedo-destruct', this.torpedoDestructHandler);
         this.removeObject(torpedoDestructEvent.torpedo);
+        this.dispatchEvent(torpedoDestructEvent.clone());
       }
     }
   }

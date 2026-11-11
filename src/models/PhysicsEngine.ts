@@ -46,7 +46,7 @@ export default class PhysicsEngine extends EventTarget {
   }
 
   applyTimePeriod(v: Velocity, timePeriod: DOMHighResTimeStamp) {
-    const vector = new Velocity({magnitude: v.magnitude * timePeriod, direction: v.direction});
+    const vector = new Velocity(v.magnitude * timePeriod, v.direction);
     return vector;
   }
 
@@ -57,7 +57,7 @@ export default class PhysicsEngine extends EventTarget {
     }
     const velocity = vectors.reduce((acc, v) => {
       return acc.addVector(v);
-    }, new Velocity({x: 0, y: 0}));
+    }, new Velocity(0, 0));
     return velocity;
   }
 

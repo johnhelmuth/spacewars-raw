@@ -1,10 +1,13 @@
 import type SpaceObject from "../models/SpaceObject.ts";
-import {type Point, pointsToBoundingBox, rotateVertices, translateVector, Vector} from "../types/geometry.ts";
-import {BoundingBox} from "../types/geometry.ts";
+import {
+  BoundingBox,
+  type Point,
+  pointsToBoundingBox, polygonIntersects,
+  rotateVertices,
+  translateVector,
+  Vector
+} from "../types/geometry.ts";
 import {Renderer} from "./Renderer.ts";
-
-export const OBJECT_SIZE_WIDTH = 64;
-export const OBJECT_SIZE_HEIGHT = 64;
 
 export interface SpaceObjectViewOptions {
   dimensions: { width: number; height: number };
@@ -21,6 +24,8 @@ export interface SpaceObjectViewInterface {
   vertices: Point[];
 
   boundingBox: BoundingBox;
+
+  globalCornersRotated(): Point[];
 
   render(showVectors: boolean): string;
 
@@ -58,15 +63,12 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
   }
 
   globalCornersRotated() {
-    const bb = this.boundingBox;
-    const corners = rotateVertices(
-      bb.corners,
+    return rotateVertices(
+      this.boundingBox.corners,
       this.rotatePoint,
       this.object.facing,
       new Vector(this.object.position)
-    )
-    ;
-    return corners;
+    );
   }
 
   vectorLineRender() {
@@ -98,18 +100,6 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
               ${this.shape()}
               ${showVectors ? this.vectorLineRender() : ''}
             </g>
-            <!--
-             ${this.options.showGrid ? `
-                <g class="calculated-bb">
-                  <rect x="${bb.x}" y="${bb.y}" width="${bb.width}" height="${bb.height}" stroke-width="0.5" fill="transparent"/>
-                  <circle cx="${bb.left}" cy="${bb.top}" r="3" fill="blue" stroke-width="0"/>
-                  <circle cx="${bb.right}" cy="${bb.top}" r="3" fill="lime" stroke-width="0" />
-                  <circle cx="${bb.right}" cy="${bb.bottom}" r="3" fill="orange" stroke-width="0" />
-                  <circle cx="${bb.left}" cy="${bb.bottom}" r="3" fill="purple" stroke-width="0" />
-                </g>
-              ` : ''
-              } 
-             -->
           </svg>
           ${this.options.showGrid ? `
             <svg 
@@ -136,7 +126,7 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
   }
 
   isCollision(ov: SpaceObjectViewInterface): boolean {
-    return this.boundingBox.boxIntersects(ov.boundingBox);
+    return polygonIntersects(this.globalCornersRotated(), ov.globalCornersRotated());
   }
 
   tick({timePeriod, timestamp}: {timePeriod: number, timestamp: DOMHighResTimeStamp}) {

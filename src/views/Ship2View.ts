@@ -6,16 +6,16 @@ export class Ship2View extends SpaceObjectView {
   constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super(object, options);
     this.vertices = [
-      { x: 2, y: 32 },
-      { x: 63, y: 48 },
-      { x: 32, y: 32 },
-      { x: 63, y: 16 },
+      { x: 0, y: -30 },
+      { x: 16, y: 30 },
+      { x: 0, y: 0 },
+      { x: -16, y: -30 },
     ]
   }
 
   shape() {
     return `
-      <path d="M 2 32 L 63 48 L 32 32 L 63 16 Z" stroke-linejoin="miter"/>
+      <path d="M 0,-30 L 16,30 L 0, 0, L -16, 30 Z" stroke-linejoin="miter"/>
     `;
   }
 }

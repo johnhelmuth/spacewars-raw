@@ -6,4 +6,7 @@ export class TorpedoSelfDestructEvent extends Event {
     super("torpedo-destruct");
     this.torpedo = torpedo;
   }
+  clone() {
+    return new TorpedoSelfDestructEvent(this.torpedo);
+  }
 }

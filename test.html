@@ -9,7 +9,7 @@
     }
     ul#log-list, ul#drawing-list {
       display: grid;
-      grid-template-columns: 3rem 1fr;
+      grid-template-columns: 3rem 1fr max-content;
       grid-row-gap: 1rem;
       list-style: none;
       padding: 0;
@@ -39,8 +39,8 @@
     ul#drawing-list {
       li.drawing-row {
         grid-template-areas:
-            "description drawing";
-        align-item: center;
+            "description drawing notes";
+        align-items: center;
 
         .label {
           grid-area: description;
@@ -51,6 +51,9 @@
           svg {
             border: 1px solid grey;
           }
+        }
+        .notes {
+          grid-area: notes;
         }
       }
     }
@@ -76,7 +79,7 @@
   </template>
   <template id="test-drawing-template">
     <li class="drawing-row">
-      <span class="drawing-label"></span><span class="drawing"></span>
+      <span class="drawing-label"></span><span class="drawing"></span><span class="notes"></span>
     </li>
   </template>
 </div>

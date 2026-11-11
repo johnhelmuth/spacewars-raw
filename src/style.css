@@ -132,11 +132,11 @@ p {
 }
 
 #last-panel {
-  grid-template-columns: max-content max-content;
-  grid-template-areas: "controls1 controls2"
-                       "messages messages";
-  grid-template-rows: min-content min-content;
+  grid-template-columns: max-content 1fr max-content;
+  grid-template-areas: "controls1 messages controls2";
   justify-content: space-between;
+  align-items: center;
+  align-content: space-around;
 
   div.controls[data-object-id="ship-1"] {
     grid-area: controls1;
@@ -147,6 +147,30 @@ p {
   div.user-messages {
     grid-area: messages;
     min-height: 2rem;
+    height: 100%;
+
+    display: grid;
+    align-content: normal;
+
+    .torpedo-status {
+      align-self: start;
+      height: 100%;
+      max-height: 5rem;
+      overflow-y: scroll;
+
+      ul {
+        list-style: none;
+        padding: 1rem;
+
+        li {
+          text-align: start;
+        }
+      }
+    }
+
+    .collisions {
+      align-self: end;
+    }
   }
 }
 

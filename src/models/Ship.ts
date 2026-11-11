@@ -41,7 +41,9 @@ export class TorpedoTube extends EventTarget {
 
   index = 0;
 
-  ship: Ship | undefined;
+  torpedoSpeed = 200;
+
+  _ship: Ship | undefined;
 
   /* fireRate {number} How frequently can a torpedo be fired, in seconds. */
   fireRate = 1/6;
@@ -52,16 +54,15 @@ export class TorpedoTube extends EventTarget {
   /* torpedoQueue - How many torpedoes are queued up to be fired. */
   torpedoQueue = 0;
 
-  constructor() {
-    super();
+  get ship() {
+    if (typeof this._ship === 'undefined') {
+      throw new Error('TorpedoTube() ship referenced before it has been set.');
+    }
+    return this._ship;
   }
 
-  get installed() {
-    return typeof this.ship !== 'undefined'
-  };
-
   setShip(ship: Ship) {
-    this.ship = ship;
+    this._ship = ship;
   }
 
   fireTorpedo() {
@@ -72,10 +73,10 @@ export class TorpedoTube extends EventTarget {
       return;
     }
     const { position, facing } = this.ship as Ship;
-    const initPosition = translateVector(position, new Vector({direction: facing, magnitude: 64}))
-    const initVelocity = new Velocity({ magnitude: 500, direction: facing })
+    const initPosition = translateVector(position, new Vector({direction: facing, magnitude: 96}))
+    const initVelocity = new Velocity(this.torpedoSpeed, facing)
     const t = new Torpedo(
-      `${this.ship?.name} torpedo ${this.index++}`,
+      `Torpedo ${this.ship.name}-${this.index++}`,
       initPosition,
       facing,
       initVelocity
@@ -98,11 +99,17 @@ export class TorpedoTube extends EventTarget {
 
 export type RotateDirection = 'not' | 'left' | 'right';
 
+const FAST_ROTATE_FACTOR = 1;
+const SLOW_ROTATE_FACTOR = 0.06;
+
 export class Ship extends SpaceObject {
 
   drive: Drive;
   tube: TorpedoTube;
   rotateAnglePerSecond: number;
+  /* rotateFactor - multiplier to rotate fast or slow. Maximum value is 1 */
+  rotateFactor: number;
+
   rotateDirection: RotateDirection;
 
   constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, tube: TorpedoTube, mass: number = 1) {
@@ -111,7 +118,8 @@ export class Ship extends SpaceObject {
     this.drive = drive;
     tube.setShip(this);
     this.tube = tube;
-    this.rotateAnglePerSecond = 60; // Degrees per second
+    this.rotateAnglePerSecond = 120; // Degrees per second
+    this.rotateFactor = 1.0;
     this.rotateDirection = 'not';
   }
 
@@ -135,33 +143,33 @@ export class Ship extends SpaceObject {
   }
 
   get acceleration() {
-    const a = new Velocity({ magnitude: this.drive.acceleration, direction: this.facing });
-    return a;
+    return new Velocity(this.drive.acceleration, this.facing);
   }
 
   setRotateDirection(rotateDirection: RotateDirection) {
     this.rotateDirection = rotateDirection;
   }
 
+  setRotateFactor(slowOrFast: 'slow' | 'fast') {
+    if (slowOrFast === 'slow') {
+      this.rotateFactor = SLOW_ROTATE_FACTOR;
+    } else {
+      this.rotateFactor = FAST_ROTATE_FACTOR;
+    }
+  }
+
   rotateLeft() {
-    this.rotate(-this.rotateAnglePerSecond);
+    this.rotate(-this.rotateAnglePerSecond * this.rotateFactor);
   }
 
   rotateRight() {
-    this.rotate(this.rotateAnglePerSecond);
+    this.rotate(this.rotateAnglePerSecond * this.rotateFactor);
   }
 
   rotateTick(timePeriod: number) {
-    let rotateAngle: Angle;
-    switch (this.rotateDirection) {
-      case 'left':
-        rotateAngle = -1 * (this.rotateAnglePerSecond * timePeriod);
-        this.rotate(rotateAngle);
-        break;
-      case 'right':
-        rotateAngle =(this.rotateAnglePerSecond * timePeriod);
-        this.rotate(rotateAngle);
-        break;
+    if (this.rotateDirection !== 'not') {
+      const rotateFactor = this.rotateFactor * (this.rotateDirection === 'left' ? -1 : 1);
+      this.rotate(this.rotateAnglePerSecond * rotateFactor * timePeriod);
     }
   }
 

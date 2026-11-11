@@ -1,13 +1,15 @@
 import './style.css'
 import {Ship1View} from "./views/Ship1View.ts";
-// import {Ship2View} from "./views/Ship2View.ts";
+import {Ship2View} from "./views/Ship2View.ts";
 import Scene from "./models/Scene.ts";
 import PhysicsEngine from "./models/PhysicsEngine.ts";
 import World from "./models/World.ts";
 import {Drive, Ship, TorpedoTube} from "./models/Ship.ts";
 import {SpaceObjectView} from "./views/SpaceObjectView.ts";
 import {CollisionEvent} from "./events/CollisionEvent.ts";
-import {Vector} from "./types/geometry.ts";
+import {Velocity} from "./types/geometry.ts";
+import {TorpedoEvent} from "./events/TorpedoEvent.ts";
+import {TorpedoSelfDestructEvent} from "./events/TorpedoSelfDestructEvent.ts";
 
 const screenEl = document.querySelector<HTMLElement>('#screen');
 if (!screenEl) {
@@ -37,11 +39,18 @@ if (!ship2Controls) {
   throw new Error('Ship 2 controls are missing!');
 }
 
-const userMessageEl = document.querySelector<HTMLElement>('.user-messages');
-if (!userMessageEl) {
+const userMessageDiv = document.querySelector<HTMLElement>('.user-messages');
+if (!userMessageDiv) {
   throw new Error('User messages are missing!');
 }
-
+const userMsgTorpedos = userMessageDiv.querySelector<HTMLElement>('.torpedo-log');
+if (!userMsgTorpedos) {
+  throw new Error('Collision message space is missing!');
+}
+const userMsgCollisions = userMessageDiv.querySelector<HTMLElement>('.collisions');
+if (!userMsgCollisions) {
+  throw new Error('Collision message space is missing!');
+}
 const dimensions = {width: 1000, height: 1000};
 const showGrid = true;
 const sceneOptions = {
@@ -59,22 +68,21 @@ const viewOptions = {
 
 const drive1 = new Drive(9.8, false);
 const tube1 = new TorpedoTube();
-const ship1 = new Ship('ship 1', {x: -500, y: 0}, 0, new Vector({x: 0, y: 0}), drive1, tube1);
+const ship1 = new Ship('ship-1', {x: 0, y: 0}, 0, new Velocity(0, 0), drive1, tube1);
 const ship1View = new Ship1View(ship1, viewOptions);
-// const drive2 = new Drive(9.8, false);
-// const tube2 = new TorpedoTube();
-// const ship2 = new Ship('ship 2', {x: 350, y: -116}, 85, new Vector({x: 0, y: 0}), drive2, tube2);
-// const ship2View = new Ship2View(ship2, viewOptions);
+const drive2 = new Drive(9.8, false);
+const tube2 = new TorpedoTube();
+const ship2 = new Ship('ship-2', {x: 350, y: -116}, 0, new Velocity(0, 0), drive2, tube2);
+const ship2View = new Ship2View(ship2, viewOptions);
 
 const scene = new Scene(sceneOptions,
   [
     ship1View,
-    // ship2View,
+    ship2View,
   ]
 );
 scene.setupTorpedoTubeListeners([
   tube1,
-  // tube2,
 ]);
 
 const engine = new PhysicsEngine();
@@ -82,16 +90,36 @@ const world = new World(scene, engine, screenEl);
 
 engine.addEventListener('collision', (e: Event) => {
   if (e instanceof CollisionEvent) {
-    if (userMessageEl) {
+    if (userMsgCollisions) {
       const collidedWith = typeof e.collidedWith === 'string' ? e.collidedWith : e.collidedWith.object.name;
-      userMessageEl.textContent = `Collision with ${collidedWith}`;
-      setTimeout(() => userMessageEl.textContent = '', 3000);
+      userMsgCollisions.textContent = `Collision with ${collidedWith}`;
+      setTimeout(() => userMsgCollisions.textContent = '', 3000);
     }
   }
 })
 
-world.addEventListener('tick', () => {
-
+const MAX_TORPEDO_MSGS = 10;
+function addTorpedoMessage(msg: string) {
+  if (userMsgTorpedos) {
+    const numEls = userMsgTorpedos.children.length;
+    const liEl = document.createElement('li');
+    liEl.innerText = msg;
+    if (numEls >= MAX_TORPEDO_MSGS) {
+      userMsgTorpedos.children[0].remove();
+    }
+    userMsgTorpedos.appendChild(liEl);
+    liEl.scrollIntoView({block: 'end', behavior: 'smooth'})
+  }
+}
+scene.addEventListener('torpedo', (e: Event) => {
+  if (e instanceof TorpedoEvent) {
+    addTorpedoMessage(`${e.torpedo.name} fired.`);
+  }
+})
+scene.addEventListener('torpedo-destruct', (e: Event) => {
+  if (e instanceof TorpedoSelfDestructEvent) {
+    addTorpedoMessage(`${e.torpedo.name} destroyed itself.`);
+  }
 })
 
 startStopButton.addEventListener('click', () => {
@@ -112,7 +140,7 @@ stepButton.addEventListener('click', () => {
 })
 
 setupControls(ship1Controls, ship1View);
-// setupControls(ship2Controls, ship2View);
+setupControls(ship2Controls, ship2View);
 
 world.render();
 
@@ -126,18 +154,20 @@ roundScreenControl.addEventListener('change', (e: Event) => {
   }
 })
 
-type ShipCtlKeyBinding = { ship: Ship, action: 'rotate-left' | 'rotate-right' | 'drive' | 'torpedo' };
+type ShipCtlKeyBinding = { ship: Ship, action: 'rotate-left' | 'rotate-right' | 'rotate-slow' | 'drive' | 'torpedo' };
 
 const shipsCtlKeyMap = new Map<string, ShipCtlKeyBinding>([
   ["KeyA", {"ship": ship1, "action": "rotate-left"}],
   ["KeyD", {"ship": ship1, "action": "rotate-right"}],
   ["KeyS", {"ship": ship1, "action": "drive"}],
   ["KeyW", {"ship": ship1, "action": "torpedo"}],
+  ["ShiftLeft", {"ship": ship1, "action": "rotate-slow"}],
 
-  // ["ArrowLeft", {"ship": ship2, "action": "rotate-left"}],
-  // ["ArrowRight", {"ship": ship2, "action": "rotate-right"}],
-  // ["ArrowDown", {"ship": ship2, "action": "drive"}],
-  // ["ArrowUp", {"ship": ship2, "action": "torpedo"}],
+  ["ArrowLeft", {"ship": ship2, "action": "rotate-left"}],
+  ["ArrowRight", {"ship": ship2, "action": "rotate-right"}],
+  ["ArrowDown", {"ship": ship2, "action": "drive"}],
+  ["ArrowUp", {"ship": ship2, "action": "torpedo"}],
+  ["ShiftRight", {"ship": ship2, "action": "rotate-slow"}],
 ]);
 
 function convertKeyToControl(keyCode: string): ShipCtlKeyBinding | undefined {
@@ -158,6 +188,9 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     case 'rotate-right':
       binding.ship.setRotateDirection('right');
       break;
+    case 'rotate-slow':
+      binding.ship.setRotateFactor('slow');
+      break;
     case "drive":
       binding.ship.switchDriveOn();
       break;
@@ -176,6 +209,9 @@ document.addEventListener('keyup', (e: KeyboardEvent) => {
     case 'rotate-left':
     case 'rotate-right':
       binding.ship.setRotateDirection('not');
+      break;
+    case 'rotate-slow':
+      binding.ship.setRotateFactor('fast');
       break;
     case "drive":
       binding.ship.switchDriveOff();
@@ -272,19 +308,3 @@ function updateRoundScreen() {
     }
   }
 }
-
-/*
-
-import type SpaceObject from "./models/SpaceObject.ts";
-function logObject(o: SpaceObject) {
-  console.group(`${o.name}`);
-  console.log(`facing is ${o.facing}`);
-  if (o.isShip()) {
-    console.log(`engine is ${o.engineStatus() ? "on" : "off"}`);
-    console.log(`acceleration is ${o.acceleration}`);
-  }
-  console.log(`velocity is ${o.velocity}`);
-  console.groupEnd();
-}
-
- */
