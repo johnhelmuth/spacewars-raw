@@ -41,7 +41,7 @@ export class TorpedoTube extends EventTarget {
 
   index = 0;
 
-  torpedoSpeed = 200;
+  torpedoSpeed = 400;
 
   _ship: Ship | undefined;
 

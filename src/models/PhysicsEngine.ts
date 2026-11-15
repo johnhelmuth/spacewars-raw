@@ -35,11 +35,11 @@ export default class PhysicsEngine extends EventTarget {
       const nextTickPosition = translateVector(o.position, this.applyTimePeriod(o.velocity, timePeriod))
       const intersectsWall = scene.wallIntersection(ov.globalCornersRotated(), nextTickPosition);
       if (intersectsWall) {
-        this.handleCollision(ov, intersectsWall, lastPos);
+        this.handleCollision(ov, intersectsWall, lastPos, scene);
       }
       const collidesWith = scene.collidesWith(ov);
       if (collidesWith) {
-        this.handleCollision(ov, collidesWith, lastPos);
+        this.handleCollision(ov, collidesWith, lastPos, scene);
       }
     }
     this.ticks++;
@@ -61,29 +61,6 @@ export default class PhysicsEngine extends EventTarget {
     return velocity;
   }
 
-  /*
-   * Moves the object to the opposite edge, maintaining its velocity vector.
-   *
-   * @param ov: {SpaceObject}
-   */
-  moveToOppositeEdge(ov: SpaceObjectView, collidedWith: CollisionTargetType) {
-    // Change the position to make it appear the walls wrap.
-    // Do not allow the new position to also be a collision.
-    let coordName = 'x' as keyof Point;
-    switch (collidedWith) {
-      case 'north':
-        coordName = 'y';
-        break;
-      case 'south':
-        coordName = 'y';
-        break;
-    }
-    const newPosition = { ...ov.object.position} as Point;
-    newPosition[coordName] *= -1;
-    // Consider validating new position is not colliding with walls.
-    ov.object.position = newPosition;
-  }
-
   /**
    * Handles collision between one of the objects in the scene with another object in a scene,
    * or the wall of the screen.
@@ -94,11 +71,11 @@ export default class PhysicsEngine extends EventTarget {
    * @param collidedWith {CollisionTargetType}
    * @param lastPos {Point} The objects position just before the collision.
    */
-  handleCollision(ov: SpaceObjectView, collidedWith: CollisionTargetType, lastPos: Point) {
+  handleCollision(ov: SpaceObjectView, collidedWith: CollisionTargetType, lastPos: Point, scene: Scene) {
     const collEvent = new CollisionEvent(ov, collidedWith);
     switch (collEvent.collisionType) {
       case 'wall':
-        this.moveToOppositeEdge(ov, collidedWith);
+        scene.moveToOppositeEdge(ov, collidedWith);
         break;
       case 'SpaceObject':
         //Change the position to its last position.

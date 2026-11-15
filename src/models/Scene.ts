@@ -1,6 +1,6 @@
 import {SpaceObjectView} from "../views/SpaceObjectView.ts";
 import {BoundingBox, type Point, pointsToBoundingBox} from "../types/geometry.ts";
-import {type WallType} from "../events/CollisionEvent.ts";
+import {type CollisionTargetType, type WallType} from "../events/CollisionEvent.ts";
 import {TorpedoTube} from "./Ship.ts";
 import {TorpedoView} from "../views/TorpedoView.ts";
 import {Torpedo} from "./Torpedo.ts";
@@ -128,6 +128,42 @@ export default class Scene extends EventTarget {
       return 'west';
     }
     return false;
+  }
+
+  /*
+   * Moves the object to the opposite edge, maintaining its velocity vector.
+   *
+   * @param ov: {SpaceObject}
+   */
+  moveToOppositeEdge(ov: SpaceObjectView, collidedWith: CollisionTargetType) {
+    // Change the position to make it appear the walls wrap.
+    // Do not allow the new position to also be a collision.
+    let coordName = 'x' as keyof Point;
+    let adjustValue: number;
+    switch (collidedWith) {
+      case 'north':
+        coordName = 'y';
+        adjustValue = this.boundingBox.bottom;
+        break;
+      case 'south':
+        coordName = 'y';
+        adjustValue = this.boundingBox.top;
+        break;
+      case 'west':
+        coordName = 'x';
+        adjustValue = this.boundingBox.right;
+        break;
+      case 'east':
+        coordName = 'x';
+        adjustValue = this.boundingBox.left;
+        break;
+      default:
+        adjustValue = ov.object.position.x;
+    }
+    const newPosition = { ...ov.object.position} as Point;
+    newPosition[coordName] = adjustValue;
+    // Consider validating new position is not colliding with walls.
+    ov.object.position = newPosition;
   }
 
   setupTorpedoTubeListeners(tubes: TorpedoTube[]) {
