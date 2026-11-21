@@ -1,49 +1,18 @@
 
 import {type Angle, type Point, Velocity} from '../types/geometry.ts';
-import {Ship} from "./Ship.ts";
 import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
 
 const DEFAULT_ROTATE_ANGLE = 1; // Rotate 5 degrees by default.
 
-export interface SpaceObjectInterface {
-
-  /** @property id - a unique-ish identifier for the object. **/
-  id: string;
-
-  /** @property name - The name of the object. **/
-  name: string;
-
-  /** @property type - a type for the object. **/
-  type: string;
-
-  /** @property position - coordinates of object. */
-  position: Point,
-
-  /** @property facing - angle the object is facing, degrees **/
-  facing: Angle,
-
-  /** @property velocity - angle and speed of motion. **/
-  velocity: Velocity,
-
-  /** @property mass - the mass of the object in kg. **/
-  mass: number,
-
-  /**
-   * Rotate facing.
-   *
-   * Positive angles rotate clockwise, negative angles rotate counter-clockwise.
-   * @param angle: Angle
-   */
-  rotate: (angle: Angle) => void,
-}
-
-export default class SpaceObject extends EventTarget implements SpaceObjectInterface {
+export class SpaceObject extends EventTarget {
   id: string;
   name: string;
   type: string;
   _position: Point;
   _facing: number;
   _velocity: Velocity; // meters / second
+  rotateAnglePerSecond: number;
+  destroyed = false;
   mass: number;
 
   constructor(name: string, position: Point, facing: number, velocity: Velocity, mass: number = 1) {
@@ -55,6 +24,7 @@ export default class SpaceObject extends EventTarget implements SpaceObjectInter
     this._facing = facing;
     this._velocity = velocity;
     this.mass = mass;
+    this.rotateAnglePerSecond = DEFAULT_ROTATE_ANGLE;
   }
 
   get facing() {
@@ -71,7 +41,7 @@ export default class SpaceObject extends EventTarget implements SpaceObjectInter
 
   rotate(angle?: Angle) {
     if (typeof angle === 'undefined') {
-      angle = this instanceof Ship ? this.rotateAnglePerSecond : DEFAULT_ROTATE_ANGLE;
+      angle = this.rotateAnglePerSecond;
     }
     let newFacing = this.facing + angle;
     if (newFacing > 360) {
@@ -104,12 +74,16 @@ export default class SpaceObject extends EventTarget implements SpaceObjectInter
     this._velocity = velocity;
   }
 
-  isShip(): this is Ship {
-    return this instanceof Ship;
+  get acceleration() {
+    return new Velocity(0, 0);
   }
 
   dispatchUpdated() {
     this.dispatchEvent(new ObjectUpdatedEvent());
+  }
+
+  destroy() {
+    this.destroyed = true;
   }
 
   tick({timePeriod, timestamp}: { timePeriod: number, timestamp: DOMHighResTimeStamp }) { timePeriod; timestamp }

@@ -1,13 +1,14 @@
-import type PhysicsEngine from "./PhysicsEngine.ts";
-import type Scene from "./Scene.ts";
+import PhysicsEngine from "../models/PhysicsEngine.ts";
+import type Scene from "../models/Scene.ts";
 import {TickEvent} from "../events/TickEvent.ts";
 import {BoundingBox} from "../types/geometry.ts";
-import {Renderer} from "../views/Renderer.ts";
+import {Renderer} from "./Renderer.ts";
+import {CollisionEvent} from "../events/CollisionEvent.ts";
 
 /**
- * World
+ * WorldView
  *
- * The World class includes the scene the objects in it, and runs the simulation.
+ * The WorldView class includes the scene the objects in it, and runs the simulation.
  * options
  *   global behavior flags and metadata for the current world
  * scene
@@ -23,31 +24,40 @@ import {Renderer} from "../views/Renderer.ts";
  *   handles user controls and passes messages to the appropriate object
  *   handles messages from objects and the physics engine
  */
-export default class World extends Renderer {
+export default class WorldView extends Renderer {
   scene: Scene;
   engine: PhysicsEngine;
   element: HTMLElement;
 
   animationRunning: boolean = false;
   animationIsStepping: boolean = false;
-  needsUpdate: boolean = false;
   animationFrameRequestId: number | undefined;
   tickHandlerId: number | undefined;
 
   startTime: DOMHighResTimeStamp | undefined;
   lastTickTime: DOMHighResTimeStamp | undefined;
+  _scaledBoundingBox: BoundingBox | undefined;
 
-  constructor(scene: Scene, engine: PhysicsEngine, element: HTMLElement) {
+  constructor(scene: Scene, element: HTMLElement) {
     super();
     this.scene = scene;
-    this.engine = engine;
     this.element = element;
-    this.scene.setScaledBoundingBox(this.elementDimensions.scaledBoundingBox);
-    this.setupObjectListeners();
+    this.engine = new PhysicsEngine(this.scene.boundingBox, this.scaledBoundingBox);
+    this.engine.addEventListener('collision', this.handleCollisionEvent);
+  }
+
+  get scaledBoundingBox() {
+    if (typeof this._scaledBoundingBox === 'undefined') {
+      this._scaledBoundingBox = this.elementDimensions.scaledBoundingBox;
+    }
+    if (typeof this._scaledBoundingBox !== 'undefined') {
+      return this._scaledBoundingBox;
+    }
+    throw new Error("No scaled bounding box in WorldView.")
   }
 
   get elementDimensions() {
-    if (typeof this.element !== undefined) {
+    if (typeof this.element !== 'undefined') {
       const width = this.element.offsetWidth;
       const height = this.element.offsetHeight;
 
@@ -83,24 +93,6 @@ export default class World extends Renderer {
       scaleY: 1,
       scale: 1
     };
-  }
-
-  setupObjectListeners() {
-    for (const ov of this.scene) {
-      ov.object.addEventListener('updated', this.handleObjectUpdated.bind(this));
-    }
-  }
-
-  handleObjectUpdated() {
-    this.needsUpdate = true;
-    if (! this.isRunning) {
-      /*
-       * In this case, the animation frame handler isn't happening, so
-       * just update the display.
-       *
-       */
-      this.render();
-    }
   }
 
   get isRunning() {
@@ -142,6 +134,12 @@ export default class World extends Renderer {
     this.waitForFrameToUpdate();
   }
 
+  handleCollisionEvent = (e: Event) => {
+    if (e instanceof CollisionEvent) {
+      this.dispatchEvent(e.clone());
+    }
+  };
+
   waitForFrameToUpdate() {
     this.animationFrameRequestId = requestAnimationFrame(this.frameHandler.bind(this));
   }
@@ -171,7 +169,7 @@ export default class World extends Renderer {
   render() {
     const sceneSVG = [...this.scene]
         .map(ov => {
-          return ov.render(!!this.scene.options.showVectors)
+          return ov.render()
         })
         .join('\n');
     this.element.innerHTML = `
@@ -185,7 +183,6 @@ export default class World extends Renderer {
             ${this.grid()}
           </svg>
     `;
-    this.needsUpdate = false;
   }
 
   grid() {

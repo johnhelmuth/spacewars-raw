@@ -1,12 +1,11 @@
+import {BoundingBox} from "../types/geometry.ts";
+import {SpaceObject} from "./SpaceObject.ts";
 import {SpaceObjectView} from "../views/SpaceObjectView.ts";
-import {BoundingBox, type Point, pointsToBoundingBox} from "../types/geometry.ts";
-import {type CollisionTargetType, type WallType} from "../events/CollisionEvent.ts";
-import {TorpedoTube} from "./Ship.ts";
-import {TorpedoView} from "../views/TorpedoView.ts";
 import {Torpedo} from "./Torpedo.ts";
+import {TorpedoView} from "../views/TorpedoView.ts";
 import {TorpedoEvent} from "../events/TorpedoEvent.ts";
-import {TorpedoSelfDestructEvent} from "../events/TorpedoSelfDestructEvent.ts";
-import type SpaceObject from "./SpaceObject.ts";
+import {RemoveObjectEvent} from "../events/RemoveObjectEvent.ts";
+import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
 
 /**
  * Scene
@@ -22,9 +21,6 @@ export default class Scene extends EventTarget {
   boundingBox: BoundingBox;
   objectScaleWidth: number;
   objectScaleHeight: number;
-  scaledBoundingBox?: BoundingBox;
-  tubes = [] as TorpedoTube[];
-  torpedoDestructHandler: (e: Event) => void;
 
   constructor(options: SceneOptions, objectViews?: SpaceObjectView[]) {
     super();
@@ -38,11 +34,6 @@ export default class Scene extends EventTarget {
 
     this.objectScaleWidth = (this.options.dimensions.width / 1000);
     this.objectScaleHeight = (this.options.dimensions.width / 1000);
-    this.torpedoDestructHandler = this.handleTorpedoDestruct.bind(this);
-  }
-
-  setScaledBoundingBox(scaledBoundingBox: BoundingBox) {
-    this.scaledBoundingBox = scaledBoundingBox;
   }
 
   * [Symbol.iterator]() {
@@ -62,13 +53,6 @@ export default class Scene extends EventTarget {
     return false;
   }
 
-  get showVectors() {
-    if (typeof this.options.showVectors !== "undefined") {
-      return this.options.showVectors;
-    }
-    return false;
-  }
-
   get roundScreen() {
     if (typeof this.options.roundScreen !== "undefined") {
       return this.options.roundScreen;
@@ -81,6 +65,7 @@ export default class Scene extends EventTarget {
   }
 
   addObject(ov: SpaceObjectView) {
+    this.setupObjectListeners(ov);
     this.objectViews.push(ov);
   }
 
@@ -92,7 +77,16 @@ export default class Scene extends EventTarget {
       idx = this.objectViews.findIndex(search => search.object === ov);
     }
     if (idx >= 0) {
+      const ov = this.objectViews[idx];
+      this.removeObjectListeners(ov);
       this.objectViews.splice(idx, 1);
+    }
+  }
+
+  handleRemoveObjectEvent = (e: Event)=> {
+    if (e instanceof RemoveObjectEvent) {
+      this.removeObject(e.objView);
+      this.dispatchEvent(e.clone())
     }
   }
 
@@ -107,73 +101,19 @@ export default class Scene extends EventTarget {
     }
   }
 
-  wallIntersection(corners: Point[], nextPosition: Point): WallType | false {
-    if (typeof this.scaledBoundingBox === "undefined") {
-      return false;
-    }
-    if (this.scaledBoundingBox.containsAllPoints(corners)) {
-      return false;
-    }
-    const obox = pointsToBoundingBox(corners);
-    if (obox.top < this.scaledBoundingBox.top && nextPosition.y < this.scaledBoundingBox.top) {
-      return 'north'
-    }
-    if (obox.right > this.scaledBoundingBox.right && nextPosition.x > this.scaledBoundingBox.right) {
-      return 'east';
-    }
-    if (obox.bottom > this.scaledBoundingBox.bottom && nextPosition.y > this.scaledBoundingBox.bottom) {
-      return 'south';
-    }
-    if (obox.left < this.scaledBoundingBox.left && nextPosition.x < this.scaledBoundingBox.left) {
-      return 'west';
-    }
-    return false;
+  setupObjectListeners(ov: SpaceObjectView) {
+    ov.addEventListener('removeObject', this.handleRemoveObjectEvent);
+    ov.addEventListener('torpedo', this.handleTorpedo);
+    ov.addEventListener('self-destruct', this.handleSelfDestruct);
   }
 
-  /*
-   * Moves the object to the opposite edge, maintaining its velocity vector.
-   *
-   * @param ov: {SpaceObject}
-   */
-  moveToOppositeEdge(ov: SpaceObjectView, collidedWith: CollisionTargetType) {
-    // Change the position to make it appear the walls wrap.
-    // Do not allow the new position to also be a collision.
-    let coordName = 'x' as keyof Point;
-    let adjustValue: number;
-    switch (collidedWith) {
-      case 'north':
-        coordName = 'y';
-        adjustValue = this.boundingBox.bottom;
-        break;
-      case 'south':
-        coordName = 'y';
-        adjustValue = this.boundingBox.top;
-        break;
-      case 'west':
-        coordName = 'x';
-        adjustValue = this.boundingBox.right;
-        break;
-      case 'east':
-        coordName = 'x';
-        adjustValue = this.boundingBox.left;
-        break;
-      default:
-        adjustValue = ov.object.position.x;
-    }
-    const newPosition = { ...ov.object.position} as Point;
-    newPosition[coordName] = adjustValue;
-    // Consider validating new position is not colliding with walls.
-    ov.object.position = newPosition;
+  removeObjectListeners(ov: SpaceObjectView) {
+    ov.removeEventListener('removeObject', this.handleRemoveObjectEvent);
+    ov.removeEventListener('torpedo', this.handleTorpedo);
+    ov.removeEventListener('self-destruct', this.handleSelfDestruct);
   }
 
-  setupTorpedoTubeListeners(tubes: TorpedoTube[]) {
-    this.tubes = tubes;
-    for (const t of this.tubes) {
-      t.addEventListener('torpedo', this.handleTorpedo.bind(this));
-    }
-  }
-
-  handleTorpedo(torpedoEvent:Event) {
+  handleTorpedo = (torpedoEvent:Event) => {
     if (torpedoEvent instanceof TorpedoEvent) {
       if (typeof torpedoEvent.torpedo !== 'undefined') {
         this.createNewTorpedoView(torpedoEvent.torpedo);
@@ -182,13 +122,10 @@ export default class Scene extends EventTarget {
     }
   }
 
-  handleTorpedoDestruct(torpedoDestructEvent: Event) {
-    if (torpedoDestructEvent instanceof TorpedoSelfDestructEvent) {
-      if (typeof torpedoDestructEvent.torpedo !== 'undefined') {
-        torpedoDestructEvent.torpedo.removeEventListener('torpedo-destruct', this.torpedoDestructHandler);
-        this.removeObject(torpedoDestructEvent.torpedo);
-        this.dispatchEvent(torpedoDestructEvent.clone());
-      }
+  handleSelfDestruct = (e: Event)=> {
+    if (e instanceof SelfDestructEvent) {
+      const { object, objectView } = e;
+      this.dispatchEvent(e.clone({ object, objectView }));
     }
   }
 
@@ -196,7 +133,6 @@ export default class Scene extends EventTarget {
     const { dimensions, showGrid } = this.options
     const tView = new TorpedoView(t, { dimensions, showGrid: !!showGrid });
     this.addObject(tView);
-    t.addEventListener('torpedo-destruct', this.torpedoDestructHandler);
   }
 }
 
@@ -205,5 +141,4 @@ export interface SceneOptions {
   edgeInset: number;
   showGrid?: boolean;
   roundScreen?: boolean;
-  showVectors?: boolean;
 }

@@ -1,6 +1,5 @@
 import {SpaceObjectView, type SpaceObjectViewOptions} from "./SpaceObjectView.ts";
-import SpaceObject from "../models/SpaceObject.ts";
-
+import {SpaceObject} from "../models/SpaceObject.ts";
 
 export class TorpedoView extends SpaceObjectView {
 
@@ -11,7 +10,7 @@ export class TorpedoView extends SpaceObjectView {
       { x: 4, y: 29 },
       { x: 10, y: 32 },
       { x: 4, y: 35 },
-    ]
+    ];
   }
 
   shape() {

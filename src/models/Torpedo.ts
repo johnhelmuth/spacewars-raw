@@ -1,6 +1,6 @@
-import SpaceObject from "./SpaceObject.ts";
+import {SpaceObject} from "./SpaceObject.ts";
 import {type Angle, type Point, Velocity} from "../types/geometry.ts";
-import {TorpedoSelfDestructEvent} from "../events/TorpedoSelfDestructEvent.ts";
+import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
 
 const SELF_DESTRUCT_TIME = 5; // Seconds
 
@@ -20,7 +20,7 @@ export class Torpedo extends SpaceObject {
       this.timer -= timePeriod;
       if (this.timer <= 0) {
         console.log(`Boom. ${this.name} self destructed at ${timestamp}.`)
-        this.dispatchEvent(new TorpedoSelfDestructEvent(this));
+        this.dispatchEvent(new SelfDestructEvent({ object: this }));
       }
     }
   }

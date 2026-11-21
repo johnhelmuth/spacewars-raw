@@ -1,4 +1,4 @@
-import type SpaceObject from "../models/SpaceObject.ts";
+import {SpaceObject} from "../models/SpaceObject.ts";
 import {
   BoundingBox,
   type Point,
@@ -8,31 +8,17 @@ import {
   Vector
 } from "../types/geometry.ts";
 import {Renderer} from "./Renderer.ts";
+import {RemoveObjectEvent} from "../events/RemoveObjectEvent.ts";
+import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
+import {TorpedoEvent} from "../events/TorpedoEvent.ts";
+import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
 
 export interface SpaceObjectViewOptions {
   dimensions: { width: number; height: number };
   showGrid: boolean;
 }
 
-export interface SpaceObjectViewInterface {
-  object: SpaceObject;
-
-  options: SpaceObjectViewOptions;
-
-  rotatePoint: Point;
-
-  vertices: Point[];
-
-  boundingBox: BoundingBox;
-
-  globalCornersRotated(): Point[];
-
-  render(showVectors: boolean): string;
-
-  isCollision(ov: SpaceObjectViewInterface): boolean;
-}
-
-export abstract class SpaceObjectView extends Renderer implements SpaceObjectViewInterface {
+export abstract class SpaceObjectView extends Renderer {
 
   object: SpaceObject;
   options: SpaceObjectViewOptions;
@@ -44,6 +30,16 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
   vertices = [] as Point[];
   _boundingBox?: BoundingBox;
 
+  // The system tick counter
+  animationTick = 0;
+
+  // The number of ticks the destroyed animation will run.
+  // TODO: Consider using a time based vs tick based animation.
+  destroyedAnimationTicks = 0;
+
+  // The system tick counter after which the object will be removed from the scene.
+  destroyAfter = 0;
+
   protected constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super();
     this.object = object;
@@ -51,9 +47,40 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
     this.objectScaleWidth = 1;
     this.objectScaleHeight = 1;
     this.rotatePoint = {x: 0, y: 0};
+    this.destroyedAnimationTicks = 15;
+    this.setObjectListeners();
   }
 
   abstract shape(): string;
+
+  setObjectListeners() {
+    this.object.addEventListener('updated', this.handleObjectUpdated)
+    this.object.addEventListener('torpedo', this.handleTorpedo); // Dispatched from ship.
+    this.object.addEventListener('self-destruct', this.handleSelfDestruct); // Dispatched from torpedo
+  }
+
+  handleObjectUpdated = (e: Event) => {
+    if (e instanceof ObjectUpdatedEvent) {
+      this.dispatchEvent(e.clone())
+    }
+  }
+
+  handleTorpedo = (e: Event) => {
+    if (e instanceof TorpedoEvent) {
+      this.dispatchEvent(e.clone())
+    }
+  }
+
+  /**
+   * This view's object is triggering self-destruct. Start the animation for destruction, and dispatch the self-destruct event.
+   *
+   * @param e {SelfDestructEvent}
+   */
+  handleSelfDestruct = (e: Event): void => {
+    if (e instanceof SelfDestructEvent) {
+      this.destroy();
+    }
+  }
 
   get boundingBox(): BoundingBox {
     if (typeof this._boundingBox === "undefined") {
@@ -71,11 +98,7 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
     );
   }
 
-  vectorLineRender() {
-    return `<path class="object-vector" d="M ${this.object.position.x} ${this.object.position.y} L ${this.object.position.x + 100} ${this.object.position.y}" stroke-dasharray="- - -"/>`;
-  }
-
-  render(showVectors: boolean) {
+  render() {
     const facing = this.object.facing;
     const gRotatePoint = translateVector(this.object.position, new Vector(this.rotatePoint));
     const objectType = this.object.type;
@@ -87,6 +110,15 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
     const globalOffsetPos = translateVector(this.object.position, new Vector({x: bb.x, y: bb.y}));
     const [topLeft, topRight, botLeft, botRight] = this.globalCornersRotated();
     const rotBB = pointsToBoundingBox([topLeft, topRight, botLeft, botRight]);
+    let viewBox: string;
+    let shape: string;
+    if (! this.runningDestroyedAnimation) {
+      viewBox = this.bbToViewBox(bb);
+      shape = this.shape();
+    } else {
+      viewBox = this.explosionViewBox();
+      shape = this.explosionShape();
+    }
     return `
           <svg
             class="space-object ${objectType}"
@@ -94,11 +126,10 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
             x="${globalOffsetPos.x}px"
             y="${globalOffsetPos.y}px"
             style="transform-origin: calc(${scaledRotatePoint.x}px) calc(${scaledRotatePoint.y}px); transform: rotate(${facing}deg);"
-              viewBox="${this.bbToViewBox(bb)}"
+              viewBox="${viewBox}"
           >
             <g>
-              ${this.shape()}
-              ${showVectors ? this.vectorLineRender() : ''}
+              ${shape}
             </g>
           </svg>
           ${this.options.showGrid ? `
@@ -125,11 +156,41 @@ export abstract class SpaceObjectView extends Renderer implements SpaceObjectVie
     `;
   }
 
-  isCollision(ov: SpaceObjectViewInterface): boolean {
+  explosionViewBox() {
+    const radius = (this.destroyedAnimationTicks+1)*4;
+    return `${-radius} ${-radius} ${radius*2} ${radius*2}`;
+  }
+
+  explosionShape() {
+    // The explosion animation tick is 1 through this.destroyedAnimationTicks+1.
+    const tick = this.destroyedAnimationTicks - (this.destroyAfter - this.animationTick);
+    return `<circle cx="0" cy="0" r="${(tick+1)*4}" fill="white" stroke="transparent" />`
+  }
+
+  isCollision(ov: SpaceObjectView): boolean {
     return polygonIntersects(this.globalCornersRotated(), ov.globalCornersRotated());
   }
 
   tick({timePeriod, timestamp}: {timePeriod: number, timestamp: DOMHighResTimeStamp}) {
     this.object.tick({timePeriod, timestamp});
+    this.animationTick += 1;
+    if (this.object.destroyed) {
+      if (! this.runningDestroyedAnimation) {
+        // Send event to trigger the removal of the object from the scene.
+        this.dispatchEvent(new RemoveObjectEvent(this));
+      }
+    }
+  }
+
+  get runningDestroyedAnimation() {
+    return this.object.destroyed && (this.animationTick <= this.destroyAfter);
+  }
+
+  destroy() {
+    if (! this.object.destroyed) {
+      this.object.destroy();
+      this.destroyAfter = this.animationTick + this.destroyedAnimationTicks;
+      this.dispatchEvent(new SelfDestructEvent({ object: this.object, objectView: this}));
+    }
   }
 }

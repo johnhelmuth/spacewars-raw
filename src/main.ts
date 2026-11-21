@@ -1,15 +1,17 @@
 import './style.css'
+import {SpaceObjectView} from "./views/SpaceObjectView.ts";
 import {Ship1View} from "./views/Ship1View.ts";
 import {Ship2View} from "./views/Ship2View.ts";
 import Scene from "./models/Scene.ts";
-import PhysicsEngine from "./models/PhysicsEngine.ts";
-import World from "./models/World.ts";
-import {Drive, Ship, TorpedoTube} from "./models/Ship.ts";
-import {SpaceObjectView} from "./views/SpaceObjectView.ts";
+import WorldView from "./views/WorldView.ts";
+import {SpaceObject} from "./models/SpaceObject.ts";
+import {Drive, Ship} from "./models/Ship.ts";
+import {Torpedo} from "./models/Torpedo.ts";
 import {CollisionEvent} from "./events/CollisionEvent.ts";
 import {Velocity} from "./types/geometry.ts";
 import {TorpedoEvent} from "./events/TorpedoEvent.ts";
-import {TorpedoSelfDestructEvent} from "./events/TorpedoSelfDestructEvent.ts";
+import {RemoveObjectEvent} from "./events/RemoveObjectEvent.ts";
+import {SelfDestructEvent} from "./events/SelfDestructEvent.ts";
 
 const screenEl = document.querySelector<HTMLElement>('#screen');
 if (!screenEl) {
@@ -58,7 +60,6 @@ const sceneOptions = {
   edgeInset: -16,
   showGrid,
   roundScreen: false,
-  showVectors: false,
 };
 
 const viewOptions = {
@@ -67,12 +68,10 @@ const viewOptions = {
 }
 
 const drive1 = new Drive(9.8, false);
-const tube1 = new TorpedoTube();
-const ship1 = new Ship('ship-1', {x: 0, y: 0}, 0, new Velocity(0, 0), drive1, tube1);
+const ship1 = new Ship('ship-1', {x: 0, y: 0}, 0, new Velocity(0, 0), drive1);
 const ship1View = new Ship1View(ship1, viewOptions);
 const drive2 = new Drive(9.8, false);
-const tube2 = new TorpedoTube();
-const ship2 = new Ship('ship-2', {x: 350, y: -116}, 0, new Velocity(0, 0), drive2, tube2);
+const ship2 = new Ship('ship-2', {x: 0, y: -116}, 270, new Velocity(0, 0), drive2);
 const ship2View = new Ship2View(ship2, viewOptions);
 
 const scene = new Scene(sceneOptions,
@@ -81,15 +80,15 @@ const scene = new Scene(sceneOptions,
     ship2View,
   ]
 );
-scene.setupTorpedoTubeListeners([
-  tube1,
-  tube2,
-]);
 
-const engine = new PhysicsEngine();
-const world = new World(scene, engine, screenEl);
+const world = new WorldView(scene, screenEl);
 
-engine.addEventListener('collision', (e: Event) => {
+// @ts-ignore
+window.spacewar = {
+  world
+}
+
+world.addEventListener('collision', (e: Event) => {
   if (e instanceof CollisionEvent) {
     if (userMsgCollisions) {
       const collidedWith = typeof e.collidedWith === 'string' ? e.collidedWith : e.collidedWith.object.name;
@@ -117,9 +116,26 @@ scene.addEventListener('torpedo', (e: Event) => {
     addTorpedoMessage(`${e.torpedo.name} fired.`);
   }
 })
-scene.addEventListener('torpedo-destruct', (e: Event) => {
-  if (e instanceof TorpedoSelfDestructEvent) {
-    addTorpedoMessage(`${e.torpedo.name} destroyed itself.`);
+scene.addEventListener('self-destruct', (e: Event) => {
+  if (e instanceof SelfDestructEvent) {
+    if (e.object instanceof Torpedo) {
+      addTorpedoMessage(`${e.object.name} destroyed itself.`);
+    }
+  }
+})
+
+// Handle ship being destroyed by removing object listeners (updates and removals) and turning off key bindings.
+scene.addEventListener('removeObject', (e: Event) => {
+  if (e instanceof RemoveObjectEvent) {
+    const ov = e.objView;
+    console.log(`Scene removeObject event received in main.ts ship controller for ${ov.object.name}`, e);
+    const updateHandler = controlsSetupMap.get(ov);
+    if (typeof updateHandler !== 'undefined') {
+      ov.object.removeEventListener('updated', updateHandler);
+    }
+    if (shipsControlStatus.has(ov.object)) {
+      shipsControlStatus.set(ov.object, false);
+    }
   }
 })
 
@@ -139,9 +155,13 @@ stepButton.addEventListener('click', () => {
   }
   world.step();
 })
+const ship1UpdateHandler = setupControls(ship1Controls, ship1View);
+const ship2UpdateHandler = setupControls(ship2Controls, ship2View);
 
-setupControls(ship1Controls, ship1View);
-setupControls(ship2Controls, ship2View);
+const controlsSetupMap = new Map<SpaceObjectView, ReturnType<typeof setupControls>>([
+    [ship1View, ship1UpdateHandler],
+    [ship2View, ship2UpdateHandler]
+]);
 
 world.render();
 
@@ -171,6 +191,17 @@ const shipsCtlKeyMap = new Map<string, ShipCtlKeyBinding>([
   ["ShiftRight", {"ship": ship2, "action": "rotate-slow"}],
 ]);
 
+function createShipsControlStatus() {
+  const shipsControlStatus = new Map<SpaceObject, boolean>();
+  for (const [, shipCtlData] of shipsCtlKeyMap) {
+    shipsControlStatus.set(shipCtlData.ship, true);
+  }
+  console.log(shipsControlStatus);
+  return shipsControlStatus;
+}
+
+const shipsControlStatus = createShipsControlStatus();
+
 function convertKeyToControl(keyCode: string): ShipCtlKeyBinding | undefined {
   if (shipsCtlKeyMap.has(keyCode)) {
     return shipsCtlKeyMap.get(keyCode) as ShipCtlKeyBinding;
@@ -182,22 +213,24 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (typeof binding === 'undefined') {
     return;
   }
-  switch (binding.action) {
-    case 'rotate-left':
-      binding.ship.setRotateDirection('left');
-      break;
-    case 'rotate-right':
-      binding.ship.setRotateDirection('right');
-      break;
-    case 'rotate-slow':
-      binding.ship.setRotateFactor('slow');
-      break;
-    case "drive":
-      binding.ship.switchDriveOn();
-      break;
-    case "torpedo":
-      binding.ship.fireTorpedo();
-      break;
+  if (shipsControlStatus.has(binding.ship) && shipsControlStatus.get(binding.ship)) {
+    switch (binding.action) {
+      case 'rotate-left':
+        binding.ship.setRotateDirection('left');
+        break;
+      case 'rotate-right':
+        binding.ship.setRotateDirection('right');
+        break;
+      case 'rotate-slow':
+        binding.ship.setRotateFactor('slow');
+        break;
+      case "drive":
+        binding.ship.switchDriveOn();
+        break;
+      case "torpedo":
+        binding.ship.fireTorpedo();
+        break;
+    }
   }
 })
 
@@ -235,18 +268,6 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
   if (!facingControl) {
     throw new Error(`${objectId} facing control not available!`);
   }
-  // const facingLeftControl = controlBlock.querySelector<HTMLFormElement>('.ship-rotate.rotate-left');
-  // if (!facingLeftControl) {
-  //   throw new Error(`${objectId} facing control left not available!`);
-  // }
-  // const facingRightControl = controlBlock.querySelector<HTMLFormElement>('.ship-rotate.rotate-right');
-  // if (!facingRightControl) {
-  //   throw new Error(`${objectId} facing control right not available!`);
-  // }
-  // const engineControl = controlBlock.querySelector<HTMLFormElement>('.ship-engine');
-  // if (!engineControl) {
-  //   throw new Error(`${objectId} engine control not available!`);
-  // }
 
   const velocityMagnitudeControl = controlBlock.querySelector<HTMLFormElement>('.ship-velocity-magnitude');
   if (!velocityMagnitudeControl) {
@@ -263,31 +284,13 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
 
   facingControl.value = ov.object.facing.toString();
 
-  // facingLeftControl.addEventListener('click', () => {
-  //   if (ov.object.isShip()) {
-  //     ov.object.rotateLeft();
-  //   }
-  // })
-  // facingRightControl.addEventListener('click', () => {
-  //   if (ov.object.isShip()) {
-  //     ov.object.rotateRight();
-  //   }
-  // })
-
   const engineStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
-  // engineControl.addEventListener('click', () => {
-  //   if (ov.object.isShip()) {
-  //     ov.object.toggleDrive();
-  //     if (engineStatusEl) {
-  //       engineStatusEl.innerText = (ov.object.drive.engineOn) ? 'on' : 'off';
-  //     }
-  //   }
-  // })
 
   velocityMagnitudeControl.value = `${ov.object.velocity.magnitude}`;
   velocityDirectionControl.value = `${ov.object.velocity.direction}`;
 
-  ov.object.addEventListener('updated', () => {
+// Handle ship update events, binding the control values to the onscreen display objects
+  const updateObjectControls = () => {
     positionXControl.value = `${ov.object.position.x}`;
     positionYControl.value = `${ov.object.position.y}`;
     facingControl.value = ov.object.facing.toString();
@@ -296,7 +299,10 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
     if (ov.object instanceof Ship && engineStatusEl instanceof HTMLElement) {
       engineStatusEl.innerText = ov.object.engineStatus() ? 'on' : 'off';
     }
-  })
+  }
+
+  ov.addEventListener('updated', updateObjectControls)
+  return updateObjectControls
 }
 
 

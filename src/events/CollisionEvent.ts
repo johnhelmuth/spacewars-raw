@@ -24,7 +24,7 @@ export class CollisionEvent extends Event {
   collidedWith: CollisionTargetType;
 
   constructor(collides: SpaceObjectView, collidedWith: CollisionTargetType) {
-    super("collision");
+    super('collision');
     this.collides = collides;
     this.collidedWith = collidedWith;
   }
@@ -37,11 +37,11 @@ export class CollisionEvent extends Event {
   }
 
   get isWall() {
-    return this._isWall(this.collidedWith);
+    return this.isWallType(this.collidedWith);
   }
 
   get isSpaceObject() {
-    return this._isSpaceObject(this.collidedWith);
+    return this.isSpaceObjectViewType(this.collidedWith);
   }
 
   /**
@@ -49,19 +49,20 @@ export class CollisionEvent extends Event {
    *
    */
   get bounceDirection() {
-    if (this._isWall(this.collidedWith)) {
+    if (this.isWallType(this.collidedWith)) {
       return directionVectors[this.collidedWith].velocity;
-    }
-    if (this._isSpaceObject(this.collidedWith)) {
-
     }
   }
 
-  _isWall(o: any): o is WallType {
+  isWallType(o: any): o is WallType {
     return directionVectors.hasOwnProperty(o);
   }
 
-  _isSpaceObject(o: any): o is SpaceObjectView {
+  isSpaceObjectViewType(o: any): o is SpaceObjectView {
     return (typeof o === 'object' && o instanceof SpaceObjectView);
+  }
+
+  clone() {
+    return new CollisionEvent(this.collides, this.collidedWith);
   }
 }
