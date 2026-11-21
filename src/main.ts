@@ -52,7 +52,7 @@ if (!userMsgCollisions) {
   throw new Error('Collision message space is missing!');
 }
 const dimensions = {width: 1000, height: 1000};
-const showGrid = true;
+const showGrid = false;
 const sceneOptions = {
   dimensions,
   edgeInset: -16,
@@ -83,6 +83,7 @@ const scene = new Scene(sceneOptions,
 );
 scene.setupTorpedoTubeListeners([
   tube1,
+  tube2,
 ]);
 
 const engine = new PhysicsEngine();
