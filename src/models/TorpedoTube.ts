@@ -10,7 +10,7 @@ export class TorpedoTube extends EventTarget {
 
   index = 0;
 
-  torpedoSpeed = 400;
+  torpedoSpeed = 600;
 
   _ship: Ship | undefined;
 
@@ -43,7 +43,7 @@ export class TorpedoTube extends EventTarget {
     }
     const { position, facing } = this.ship as Ship;
     const initPosition = translateVector(position, new Vector({direction: facing, magnitude: 96}))
-    const initVelocity = new Velocity(this.torpedoSpeed, facing)
+    const initVelocity = this.ship.velocity.addVector(new Velocity(this.torpedoSpeed, facing));
     const t = new Torpedo(
         `Torpedo ${this.ship.name}-${this.index++}`,
         initPosition,
