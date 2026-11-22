@@ -22,31 +22,26 @@
       </div>
       <div id="last-panel">
         <div id="ship-1-controls" data-object-id="ship-1" class="controls">
-          <fieldset id="ship-1-controls-fieldset">
-            <legend>Ship 1</legend>
-            <label>Position:
-              <input type="text" name="ship-1-position-x" id="ship-1-position-x" size="6"
-                     class="position-x" disabled/>
-              <input type="text" name="ship-1-position-y" id="ship-1-position-y" size="6"
-                     class="position-y" disabled/>
-            </label>
-            <label>Engine: <span class="engine-state">off</span>
-<!--              <div><button id="ship-1-engine" name="ship-1-engine" class="ship-engine">Toggle</button></div>-->
-            </label>
-            <label>
-              Facing
-              <input type="text" name="ship-1-facing" id="ship-1-facing" size="6" class="ship-facing" disabled/>
-            </label>
-<!--            <button id="ship-1-rotate-left" name="ship-1-rotate-left" class="ship-rotate rotate-left">Left</button>-->
-<!--            <button id="ship-1-rotate-right" name="ship-1-rotate-right" class="ship-rotate rotate-right">Right</button>-->
-            <label>
-              Velocity
-              <input type="text" name="ship-1-velocity-magnitude" id="ship-1-velocity-magnitude" size="6"
-                     class="ship-velocity-magnitude" disabled/>
-              <input type="text" name="ship-1-velocity-direction" id="ship-1-velocity-direction" size="6"
-                     class="ship-velocity-direction" disabled/>
-            </label>
-          </fieldset>
+          <h2>Ship 1</h2>
+          <ul id="ship-1-controls-fieldset">
+            <li class="property-display vector">
+              <div class="label">Position:</div>
+              <div id="ship-1-position-x" class="value value1 position-x" ></div>
+              <div id="ship-1-position-y" class="value value2 position-y" ></div>
+            </li>
+            <li class="property-display">
+              <div class="label">Engine:</div>
+              <div class="value engine-state">off</div></li>
+            <li class="property-display">
+              <div class="label">Facing:</div>
+              <div id="ship-1-facing" class="value ship-facing"></div>
+            </li>
+            <li class="property-display vector">
+              <div class="label">Velocity:</div>
+              <div id="ship-1-velocity-magnitude" class="value value1 ship-velocity-magnitude"></div>
+              <div id="ship-1-velocity-direction" class="value value2 ship-velocity-direction"></div>
+            </li>
+          </ul>
         </div>
         <div class="user-messages">
           <div class="torpedo-status">
@@ -59,33 +54,26 @@
           </div>
         </div>
         <div id="ship-2-controls" data-object-id="ship-2" class="controls">
-          <fieldset id="ship-2-controls-fieldset">
-            <legend>Ship 2</legend>
-            <label>Position:
-              <input type="text" name="ship-2-position-x" id="ship-2-position-x" size="6"
-                     class="position-x" disabled/>
-              <input type="text" name="ship-2-position-y" id="ship-2-position-y" size="6"
-                     class="position-y" disabled/>
-            </label>
-            <label>Engine: <span class="engine-state">off</span>
-<!--              <div>-->
-<!--                <button id="ship-2-engine" name="ship-2-engine" class="ship-engine">Toggle</button>-->
-<!--              </div>-->
-            </label>
-            <label>
-              Facing
-              <input type="text" name="ship-2-facing" id="ship-2-facing" size="6" class="ship-facing" disabled/>
-            </label>
-<!--            <button id="ship-2-rotate-left" name="ship-2-rotate-left" class="ship-rotate rotate-left">Left</button>-->
-<!--            <button id="ship-2-rotate-right" name="ship-2-rotate-right" class="ship-rotate rotate-right">Right</button>-->
-            <label>
-              Velocity
-              <input type="text" name="ship-2-velocity-magnitude" id="ship-2-velocity-magnitude" size="6"
-                     class="ship-velocity-magnitude" disabled/>
-              <input type="text" name="ship-2-velocity-direction" id="ship-2-velocity-direction" size="6"
-                     class="ship-velocity-direction" disabled/>
-            </label>
-          </fieldset>
+          <h2>Ship 2</h2>
+          <ul id="ship-2-controls-fieldset">
+            <li class="property-display vector">
+              <div class="label">Position:</div>
+              <div id="ship-2-position-x" class="value value1 position-x" ></div>
+              <div id="ship-2-position-y" class="value value2 position-y" ></div>
+            </li>
+            <li class="property-display">
+              <div class="label">Engine:</div>
+              <div class="value engine-state">off</div></li>
+            <li class="property-display">
+              <div class="label">Facing:</div>
+              <div id="ship-2-facing" class="value ship-facing"></div>
+            </li>
+            <li class="property-display vector">
+              <div class="label">Velocity:</div>
+              <div id="ship-2-velocity-magnitude" class="value value1 ship-velocity-magnitude"></div>
+              <div id="ship-2-velocity-direction" class="value value2 ship-velocity-direction"></div>
+            </li>
+          </ul>
         </div>
       </div>
     </section>

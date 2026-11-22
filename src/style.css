@@ -1,11 +1,12 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
+  --text: #F5F5F5;
+  --text-h: #FFF;
+  --bg: #8a3704;
   --screen-bg: #000;
-  --screen-object-color: #0f0;
+  --screen-object-color: #fff;
   --border: #e5e4e7;
-  --code-bg: #f4f3ec;
+  --code: #eee;
+  --code-bg: #844b27;
   --accent: #aa3bff;
   --accent-bg: rgba(170, 59, 255, 0.1);
   --accent-border: rgba(170, 59, 255, 0.5);
@@ -30,33 +31,13 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --screen-bg: #fff;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
 body {
   margin: 0;
 }
 
 h1,
 h2 {
-  font-family: var(--heading);
+  font-family: var(--heading) sans-serif;
   font-weight: 500;
   color: var(--text-h);
 }
@@ -66,12 +47,14 @@ h1 {
   letter-spacing: -1.68px;
   margin: 1rem 0 .75rem;
 }
+
 h2 {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   line-height: 118%;
   letter-spacing: -0.24px;
-  margin: 0 0 0.75rem;
+  margin: 0;
 }
+
 p {
   margin: 0;
 }
@@ -99,12 +82,15 @@ p {
 #first-panel {
   grid-row: 1 / 2;
 }
+
 #middle-panel {
   grid-row: 2 / 3;
 }
+
 #last-panel {
   grid-row: 3 / 4;
 }
+
 #first-panel, #last-panel {
 
   display: grid;
@@ -116,6 +102,7 @@ p {
   .option-control {
     display: flex;
     align-items: center;
+
     input {
       margin-left: .5rem;
     }
@@ -123,11 +110,6 @@ p {
 
   & .engine-state {
     font-weight: bold;
-  }
-  div.controls {
-    label {
-      display: block;
-    }
   }
 }
 
@@ -138,12 +120,57 @@ p {
   align-items: center;
   align-content: space-around;
 
+  div.controls {
+
+    ul {
+      list-style: none;
+      margin: .25rem 0 0;
+      display: grid;
+      grid-template-columns: max-content 1fr 1fr;
+      grid-template-areas: "label value value";
+
+      .property-display {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-template-areas: "label value value";
+        gap: .25rem;
+
+        &.vector {
+          grid-template-areas: "label value1 value2";
+        }
+
+        .label {
+          grid-area: label;
+          text-align: right;
+        }
+
+        .value {
+          color: var(--code);
+          background-color: var(--code-bg);
+          grid-area: value;
+          margin: 0.25rem;
+        }
+
+        &.vector .value1 {
+          grid-area: value1;
+        }
+
+        &.vector .value2 {
+          grid-area: value2;
+        }
+      }
+    }
+  }
+
   div.controls[data-object-id="ship-1"] {
     grid-area: controls1;
   }
-  div.controls[data-object-id="ship-"] {
+
+  div.controls[data-object-id="ship-2"] {
     grid-area: controls2;
   }
+
   div.user-messages {
     grid-area: messages;
     min-height: 2rem;
@@ -195,19 +222,14 @@ p {
     }
 
     & .ship {
-      stroke: #00ff00;
+      stroke: var(--screen-object-color);
       stroke-width: 1px;
     }
 
     & .torpedo {
-      stroke: #00ff00;
+      stroke: var(--screen-object-color);
       stroke-width: 1px;
-      fill: #00ff00;
-    }
-
-    & .object-vector {
-      stroke: lightblue;
-      stroke-width: 1px;
+      fill: var(--screen-object-color);
     }
   }
 

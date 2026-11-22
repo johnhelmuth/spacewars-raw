@@ -12,6 +12,8 @@ import {Velocity} from "./types/geometry.ts";
 import {TorpedoEvent} from "./events/TorpedoEvent.ts";
 import {RemoveObjectEvent} from "./events/RemoveObjectEvent.ts";
 import {SelfDestructEvent} from "./events/SelfDestructEvent.ts";
+import {Star} from "./models/Star.ts";
+import {StarView} from "./views/StarView.ts";
 
 const screenEl = document.querySelector<HTMLElement>('#screen');
 if (!screenEl) {
@@ -59,7 +61,7 @@ const sceneOptions = {
   dimensions,
   edgeInset: -16,
   showGrid,
-  roundScreen: false,
+  roundScreen: true,
 };
 
 const viewOptions = {
@@ -68,16 +70,19 @@ const viewOptions = {
 }
 
 const drive1 = new Drive(9.8, false);
-const ship1 = new Ship('ship-1', {x: -950, y: 0}, 83.67, new Velocity(0, 0), drive1);
+const ship1 = new Ship('ship-1', {x: -450, y: 0}, 83.67, new Velocity(0, 0), drive1);
 const ship1View = new Ship1View(ship1, viewOptions);
 const drive2 = new Drive(9.8, false);
 const ship2 = new Ship('ship-2', {x: 0, y: -116}, 270, new Velocity(0, 0), drive2);
 const ship2View = new Ship2View(ship2, viewOptions);
+const star = new Star();
+const starView = new StarView(star, viewOptions);
 
 const scene = new Scene(sceneOptions,
   [
     ship1View,
     ship2View,
+    starView,
   ]
 );
 
@@ -279,15 +284,15 @@ function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
     throw new Error(`${objectId} velocity direction control not available!`);
   }
 
-  positionXControl.value = `${ov.object.position.x}`;
-  positionYControl.value = `${ov.object.position.y}`;
+  positionXControl.innerText = `${ov.object.position.x}`;
+  positionYControl.innerText = `${ov.object.position.y}`;
 
-  facingControl.value = ov.object.facing.toString();
+  facingControl.innerText = ov.object.facing.toString();
 
   const engineStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
 
-  velocityMagnitudeControl.value = `${ov.object.velocity.magnitude}`;
-  velocityDirectionControl.value = `${ov.object.velocity.direction}`;
+  velocityMagnitudeControl.innerText = `${ov.object.velocity.magnitude}`;
+  velocityDirectionControl.innerText = `${ov.object.velocity.direction}`;
 
 // Handle ship update events, binding the control values to the onscreen display objects
   const updateObjectControls = () => {
