@@ -112,17 +112,22 @@ export abstract class SpaceObjectView extends Renderer {
     const rotBB = pointsToBoundingBox([topLeft, topRight, botLeft, botRight]);
     let viewBox: string;
     let shape: string;
+    let height = bb.height;
+    let width = bb.width;
     if (! this.runningDestroyedAnimation) {
       viewBox = this.bbToViewBox(bb);
       shape = this.shape();
     } else {
       viewBox = this.explosionViewBox();
       shape = this.explosionShape();
+      const explRadius = this.explosionRadius();
+      height = explRadius;
+      width = explRadius;
     }
     return `
           <svg
             class="space-object ${objectType}"
-            height="${bb.height}" width="${bb.width}"
+            height="${height}" width="${width}"
             x="${globalOffsetPos.x}px"
             y="${globalOffsetPos.y}px"
             style="transform-origin: calc(${scaledRotatePoint.x}px) calc(${scaledRotatePoint.y}px); transform: rotate(${facing}deg);"
@@ -156,15 +161,37 @@ export abstract class SpaceObjectView extends Renderer {
     `;
   }
 
+  // The explosion animation tick is 1 through this.destroyedAnimationTicks.
+  get explosionAnimationTick() {
+    return this.destroyedAnimationTicks - (this.destroyAfter - this.animationTick);
+  }
+
+  /**
+   * explosionAnimationTick = 1-15
+   * radius = 4-32
+   */
+  explosionRadius() {
+    return (this.explosionAnimationTick+1)*2;
+  }
+
+  explosionMaxRadius() {
+    return (this.destroyedAnimationTicks+1)*2;
+  }
+
   explosionViewBox() {
-    const radius = (this.destroyedAnimationTicks+1)*4;
+    const radius = this.explosionRadius();
     return `${-radius} ${-radius} ${radius*2} ${radius*2}`;
   }
 
   explosionShape() {
     // The explosion animation tick is 1 through this.destroyedAnimationTicks+1.
-    const tick = this.destroyedAnimationTicks - (this.destroyAfter - this.animationTick);
-    return `<circle cx="0" cy="0" r="${(tick+1)*4}" fill="white" stroke="transparent" />`
+    const radius = this.explosionRadius();
+    const radiusDiff = this.explosionMaxRadius()/4;
+    let explosion = '';
+    for (let r = 0; r <= radius; r+=radiusDiff) {
+      explosion += `<circle cx="0" cy="0" r="${r}" fill="transparent" />`
+    }
+    return explosion
   }
 
   isCollision(ov: SpaceObjectView): boolean {

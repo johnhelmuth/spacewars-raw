@@ -1,5 +1,5 @@
 import {SpaceObjectView, type SpaceObjectViewOptions} from "./SpaceObjectView.ts";
-import type SpaceObject from "../models/SpaceObject.ts";
+import {SpaceObject} from "../models/SpaceObject.ts";
 
 export class Ship2View extends SpaceObjectView {
 

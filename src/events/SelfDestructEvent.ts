@@ -1,5 +1,5 @@
-import type {SpaceObject} from "../models/SpaceObject.ts";
-import type {SpaceObjectView} from "../views/SpaceObjectView.ts";
+import {SpaceObject} from "../models/SpaceObject.ts";
+import {SpaceObjectView} from "../views/SpaceObjectView.ts";
 
 type SelfDestructEventProps = {
   object?: SpaceObject,
