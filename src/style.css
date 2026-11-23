@@ -126,7 +126,7 @@ p {
       list-style: none;
       margin: .25rem 0 0;
       display: grid;
-      grid-template-columns: max-content 1fr 1fr;
+      grid-template-columns: max-content 5rem 5rem;
       grid-template-areas: "label value value";
 
       .property-display {
@@ -150,6 +150,8 @@ p {
           background-color: var(--code-bg);
           grid-area: value;
           margin: 0.25rem;
+          font-size: .9rem;
+          padding: 0.25rem;
         }
 
         &.vector .value1 {

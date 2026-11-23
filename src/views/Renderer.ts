@@ -12,7 +12,6 @@ export class Renderer extends EventTarget {
     for (let a = 0; a < 360; a += baseAngle) {
       angles.push(a);
     }
-    console.log('angles', angles);
     return angles
       .map(angle => {
         const {x, y} = new Vector({magnitude: r, direction: angle});

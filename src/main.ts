@@ -6,12 +6,8 @@ import Scene from "./models/Scene.ts";
 import WorldView from "./views/WorldView.ts";
 import {SpaceObject} from "./models/SpaceObject.ts";
 import {Drive, Ship} from "./models/Ship.ts";
-import {Torpedo} from "./models/Torpedo.ts";
-import {CollisionEvent} from "./events/CollisionEvent.ts";
-import {Velocity} from "./types/geometry.ts";
-import {TorpedoEvent} from "./events/TorpedoEvent.ts";
+import {roundTo, Velocity} from "./types/geometry.ts";
 import {RemoveObjectEvent} from "./events/RemoveObjectEvent.ts";
-import {SelfDestructEvent} from "./events/SelfDestructEvent.ts";
 import {Star} from "./models/Star.ts";
 import {StarView} from "./views/StarView.ts";
 
@@ -93,41 +89,41 @@ window.spacewar = {
   world
 }
 
-world.addEventListener('collision', (e: Event) => {
-  if (e instanceof CollisionEvent) {
-    if (userMsgCollisions) {
-      const collidedWith = typeof e.collidedWith === 'string' ? e.collidedWith : e.collidedWith.object.name;
-      userMsgCollisions.textContent = `Collision with ${collidedWith}`;
-      setTimeout(() => userMsgCollisions.textContent = '', 3000);
-    }
-  }
-})
-
-const MAX_TORPEDO_MSGS = 10;
-function addTorpedoMessage(msg: string) {
-  if (userMsgTorpedos) {
-    const numEls = userMsgTorpedos.children.length;
-    const liEl = document.createElement('li');
-    liEl.innerText = msg;
-    if (numEls >= MAX_TORPEDO_MSGS) {
-      userMsgTorpedos.children[0].remove();
-    }
-    userMsgTorpedos.appendChild(liEl);
-    liEl.scrollIntoView({block: 'end', behavior: 'smooth'})
-  }
-}
-scene.addEventListener('torpedo', (e: Event) => {
-  if (e instanceof TorpedoEvent) {
-    addTorpedoMessage(`${e.torpedo.name} fired.`);
-  }
-})
-scene.addEventListener('self-destruct', (e: Event) => {
-  if (e instanceof SelfDestructEvent) {
-    if (e.object instanceof Torpedo) {
-      addTorpedoMessage(`${e.object.name} destroyed itself.`);
-    }
-  }
-})
+// world.addEventListener('collision', (e: Event) => {
+//   if (e instanceof CollisionEvent) {
+//     if (userMsgCollisions) {
+//       const collidedWith = typeof e.collidedWith === 'string' ? e.collidedWith : e.collidedWith.object.name;
+//       userMsgCollisions.textContent = `Collision with ${collidedWith}`;
+//       setTimeout(() => userMsgCollisions.textContent = '', 3000);
+//     }
+//   }
+// })
+//
+// const MAX_TORPEDO_MSGS = 10;
+// function addTorpedoMessage(msg: string) {
+//   if (userMsgTorpedos) {
+//     const numEls = userMsgTorpedos.children.length;
+//     const liEl = document.createElement('li');
+//     liEl.innerText = msg;
+//     if (numEls >= MAX_TORPEDO_MSGS) {
+//       userMsgTorpedos.children[0].remove();
+//     }
+//     userMsgTorpedos.appendChild(liEl);
+//     liEl.scrollIntoView({block: 'end', behavior: 'smooth'})
+//   }
+// }
+// scene.addEventListener('torpedo', (e: Event) => {
+//   if (e instanceof TorpedoEvent) {
+//     addTorpedoMessage(`${e.torpedo.name} fired.`);
+//   }
+// })
+// scene.addEventListener('self-destruct', (e: Event) => {
+//   if (e instanceof SelfDestructEvent) {
+//     if (e.object instanceof Torpedo) {
+//       addTorpedoMessage(`${e.object.name} destroyed itself.`);
+//     }
+//   }
+// })
 
 // Handle ship being destroyed by removing object listeners (updates and removals) and turning off key bindings.
 scene.addEventListener('removeObject', (e: Event) => {
@@ -201,7 +197,6 @@ function createShipsControlStatus() {
   for (const [, shipCtlData] of shipsCtlKeyMap) {
     shipsControlStatus.set(shipCtlData.ship, true);
   }
-  console.log(shipsControlStatus);
   return shipsControlStatus;
 }
 
@@ -261,50 +256,46 @@ document.addEventListener('keyup', (e: KeyboardEvent) => {
 function setupControls(controlBlock: HTMLElement, ov: SpaceObjectView) {
   const objectId = controlBlock.dataset.objectId;
 
-  const positionXControl = controlBlock.querySelector<HTMLInputElement>('.position-x');
+  const positionXControl = controlBlock.querySelector<HTMLElement>('.position-x');
   if (!positionXControl) {
     throw new Error(`${objectId} position X control not available!`);
   }
-  const positionYControl = controlBlock.querySelector<HTMLInputElement>('.position-y');
+  const positionYControl = controlBlock.querySelector<HTMLElement>('.position-y');
   if (!positionYControl) {
     throw new Error(`${objectId} position Y control not available!`);
   }
-  const facingControl = controlBlock.querySelector<HTMLFormElement>('.ship-facing');
+  const facingControl = controlBlock.querySelector<HTMLElement>('.ship-facing');
   if (!facingControl) {
     throw new Error(`${objectId} facing control not available!`);
   }
 
-  const velocityMagnitudeControl = controlBlock.querySelector<HTMLFormElement>('.ship-velocity-magnitude');
+  const velocityMagnitudeControl = controlBlock.querySelector<HTMLElement>('.ship-velocity-magnitude');
   if (!velocityMagnitudeControl) {
     throw new Error(`${objectId} velocity magnitude control not available!`);
   }
 
-  const velocityDirectionControl = controlBlock.querySelector<HTMLFormElement>('.ship-velocity-direction');
+  const velocityDirectionControl = controlBlock.querySelector<HTMLElement>('.ship-velocity-direction');
   if (!velocityDirectionControl) {
     throw new Error(`${objectId} velocity direction control not available!`);
   }
 
-  positionXControl.innerText = `${ov.object.position.x}`;
-  positionYControl.innerText = `${ov.object.position.y}`;
+  const driveStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
+  if (!driveStatusEl) {
+    throw new Error(`${objectId} drive status control not available!`);
+  }
 
-  facingControl.innerText = ov.object.facing.toString();
-
-  const engineStatusEl = controlBlock.querySelector<HTMLElement>('.engine-state');
-
-  velocityMagnitudeControl.innerText = `${ov.object.velocity.magnitude}`;
-  velocityDirectionControl.innerText = `${ov.object.velocity.direction}`;
-
-// Handle ship update events, binding the control values to the onscreen display objects
+  // Update the display for the ship based on the ship object. Called when an updated event is received.
   const updateObjectControls = () => {
-    positionXControl.value = `${ov.object.position.x}`;
-    positionYControl.value = `${ov.object.position.y}`;
-    facingControl.value = ov.object.facing.toString();
-    velocityMagnitudeControl.value = `${ov.object.velocity.magnitude}`;
-    velocityDirectionControl.value = `${ov.object.velocity.direction}`;
-    if (ov.object instanceof Ship && engineStatusEl instanceof HTMLElement) {
-      engineStatusEl.innerText = ov.object.engineStatus() ? 'on' : 'off';
+    positionXControl.innerText = roundTo(ov.object.position.x,1).toString();
+    positionYControl.innerText = roundTo(ov.object.position.y,1).toString();
+    facingControl.innerText = roundTo(ov.object.facing,2).toString();
+    velocityMagnitudeControl.innerText = roundTo(ov.object.velocity.magnitude,2).toString();
+    velocityDirectionControl.innerText = roundTo(ov.object.velocity.direction,2).toString();
+    if (ov.object instanceof Ship) {
+      driveStatusEl.innerText = ov.object.engineStatus() ? 'on' : 'off';
     }
   }
+  updateObjectControls();
 
   ov.addEventListener('updated', updateObjectControls)
   return updateObjectControls

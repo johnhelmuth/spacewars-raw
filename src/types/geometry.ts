@@ -371,7 +371,7 @@ export function pointsToBoundingBox(vertices: Point[]) {
 
 export function roundTo(n: number, digits = 15): number {
   const factor = 10**(digits-1);
-  return Math.fround(Math.fround(n * factor) / factor);
+  return Math.round(n * factor) / factor;
 }
 
 export const degreeToRadiansFactor = roundTo(Math.PI / 180);
