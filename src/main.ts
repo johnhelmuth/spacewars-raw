@@ -55,7 +55,7 @@ const userMsgCollisions = userMessageDiv.querySelector<HTMLElement>('.collisions
 if (!userMsgCollisions) {
   throw new Error('Collision message space is missing!');
 }
-const dimensions = {width: 1000, height: 1000};
+const dimensions = {width: 2500, height: 2500};
 const showGrid = false;
 const sceneOptions = {
   dimensions,
@@ -70,10 +70,10 @@ const viewOptions = {
 }
 
 const drive1 = new Drive(9.8, false);
-const ship1 = new Ship('ship-1', {x: -450, y: 0}, 83.67, new Velocity(0, 0), drive1);
+const ship1 = new Ship('ship-1', {x: -600, y: 0}, 0, new Velocity(0, 0), drive1);
 const ship1View = new Ship1View(ship1, viewOptions);
 const drive2 = new Drive(9.8, false);
-const ship2 = new Ship('ship-2', {x: 0, y: -116}, 270, new Velocity(0, 0), drive2);
+const ship2 = new Ship('ship-2', {x: 600, y: 0}, 180, new Velocity(0, 0), drive2);
 const ship2View = new Ship2View(ship2, viewOptions);
 const star = new Star();
 const starView = new StarView(star, viewOptions);
