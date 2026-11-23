@@ -221,12 +221,12 @@ p {
       clip-path: circle(closest-side);
     }
 
-    & .ship {
+    .ship, .star {
       stroke: var(--screen-object-color);
       stroke-width: 1px;
     }
 
-    & .torpedo {
+    .torpedo {
       stroke: var(--screen-object-color);
       stroke-width: 1px;
       fill: var(--screen-object-color);
