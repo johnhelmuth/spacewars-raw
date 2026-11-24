@@ -1,5 +1,13 @@
 import type Scene from "./Scene.ts";
-import {BoundingBox, type Point, pointsToBoundingBox, translateVector, Velocity} from "../types/geometry.ts";
+import {
+  accelPerGravity, angleBetween,
+  BoundingBox,
+  type Point,
+  pointsToBoundingBox,
+  translateVector,
+  Vector,
+  Velocity
+} from "../types/geometry.ts";
 import {CollisionEvent, type CollisionTargetType, type WallType} from "../events/CollisionEvent.ts";
 import {SpaceObjectView} from "../views/SpaceObjectView.ts";
 import {SpaceObject} from "./SpaceObject.ts";
@@ -32,7 +40,11 @@ export default class PhysicsEngine extends EventTarget {
     for (const ov of scene) {
       ov.tick({timePeriod, timestamp});
       const o = ov.object;
-      const newVelocity = this.applyAccelerationToVelocity(o);
+      if (o.isStatic) {
+        // Does not allow other objects to affect its position.
+        continue;
+      }
+      const newVelocity = this.applyAccelerationToVelocity(o, this.accelGravityVectors(o, scene.sceneObjects));
       const newPosition = translateVector(o.position, this.applyTimePeriod(newVelocity, timePeriod));
       if (newPosition === o.position) {
         // No change in position means we don't need to update.
@@ -58,8 +70,20 @@ export default class PhysicsEngine extends EventTarget {
     return vector;
   }
 
-  applyAccelerationToVelocity(o: SpaceObject) {
-    const vectors = [o.velocity, o.acceleration];
+  accelGravityVectors(o1: SpaceObject, objects: SpaceObject[]) {
+    const vectors = objects.map(o2 => {
+      if (o2 === o1) {
+        return;
+      }
+      const magnitude = accelPerGravity(o1, o2);
+      const direction = angleBetween(o1.position, o2.position);
+      return new Velocity(magnitude, direction)
+    }).filter(v => !! v);
+    return vectors;
+  }
+
+  applyAccelerationToVelocity(o: SpaceObject, accels: Vector[]) {
+    const vectors = [o.velocity, o.acceleration, ...accels];
     const velocity = vectors.reduce((acc, v) => {
       return acc.addVector(v);
     }, new Velocity(0, 0));

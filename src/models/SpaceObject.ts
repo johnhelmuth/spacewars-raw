@@ -27,6 +27,11 @@ export class SpaceObject extends EventTarget {
     this.rotateAnglePerSecond = DEFAULT_ROTATE_ANGLE;
   }
 
+  /**
+   * @property isStatic {boolean} If true, does not allow other objects to affect its position.
+   */
+  get isStatic() { return false }
+
   get facing() {
     return this._facing;
   }

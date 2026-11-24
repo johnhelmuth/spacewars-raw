@@ -11,6 +11,7 @@
  */
 export const LIGHT_SPEED = 4000;
 
+export const G = 6.6743e-11;
 /*
  * A point is an x,y pair in the screen (page) coordinate system.
  *
@@ -491,4 +492,27 @@ export function rotatePoint(p: Point, rotPt: Point, direction: Angle) {
     y: pR.y + rotPt.y,
   }
   return p1;
+}
+
+export function distance(p1: Point, p2: Point) {
+  const dx = p1.x - p2.x;
+  const dy = p1.y - p2.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+export function angleBetween(p1: Point, p2: Point): Angle {
+  const x = p2.x - p1.x;
+  const y = p2.y - p1.y;
+  const v = pointToMagDir({ x, y })
+  return (v.direction);
+}
+
+export type ObjectProperties = {
+  position: Point;
+  mass: number;
+}
+
+export function accelPerGravity(o1: ObjectProperties, o2: ObjectProperties) {
+  const r = distance(o1.position, o2.position);
+  return G * ((o1.mass * o2.mass)/(r*r));
 }

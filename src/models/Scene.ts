@@ -42,6 +42,10 @@ export default class Scene extends EventTarget {
     }
   }
 
+  get sceneObjects() {
+    return this.objectViews.map(ov => ov.object);
+  }
+
   get dimensions() {
     return this.options.dimensions || { width: 1000, height: 1000 };
   }

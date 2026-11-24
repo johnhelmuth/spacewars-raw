@@ -8,7 +8,7 @@ export class Torpedo extends SpaceObject {
 
   timer: number;
 
-  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, mass: number = 1) {
+  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, mass: number = 200) {
     super(name, position, facing, velocity, mass);
     this.type = 'torpedo';
     this.timer = SELF_DESTRUCT_TIME;

@@ -48,7 +48,7 @@ export class Ship extends SpaceObject {
 
   rotateDirection: RotateDirection;
 
-  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, mass: number = 1) {
+  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, mass: number = 1000000) {
     super(name, position, facing, velocity, mass);
     this.type = 'ship';
     this.drive = drive;
