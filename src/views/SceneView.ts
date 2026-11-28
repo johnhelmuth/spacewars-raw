@@ -24,7 +24,7 @@ import {CollisionEvent} from "../events/CollisionEvent.ts";
  *   handles user controls and passes messages to the appropriate object
  *   handles messages from objects and the physics engine
  */
-export default class WorldView extends Renderer {
+export class SceneView extends Renderer {
   scene: Scene;
   engine: PhysicsEngine;
   element: HTMLElement;

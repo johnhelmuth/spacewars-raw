@@ -1,7 +1,6 @@
 import {translateVector, Vector, Velocity} from "../types/geometry.ts";
-import {Torpedo} from "./Torpedo.ts";
-import {TorpedoEvent} from "../events/TorpedoEvent.ts";
 import {Ship} from "./Ship.ts";
+import {TorpedoEvent} from "../events/TorpedoEvent.ts";
 
 const MAX_TORPEDOES_IN_QUEUE = 6;
 const TORPEDO_COOL_DOWN_PERIOD = .7; /* Second */
@@ -10,7 +9,7 @@ export class TorpedoTube extends EventTarget {
 
   index = 0;
 
-  torpedoSpeed = 600;
+  torpedoSpeed = 1200;
 
   _ship: Ship | undefined;
 
@@ -41,20 +40,24 @@ export class TorpedoTube extends EventTarget {
       }
       return;
     }
-    const { position, facing } = this.ship as Ship;
-    const initPosition = translateVector(position, new Vector({direction: facing, magnitude: 96}))
-    const initVelocity = this.ship.velocity.addVector(new Velocity(this.torpedoSpeed, facing));
-    const t = new Torpedo(
-        `Torpedo ${this.ship.name}-${this.index++}`,
-        initPosition,
-        facing,
-        initVelocity
-    );
     if (this.torpedoQueue > 0) {
       this.torpedoQueue--;
     }
     this.torpedoCooldown = TORPEDO_COOL_DOWN_PERIOD;
-    this.dispatchEvent(new TorpedoEvent(this.ship, t))
+    const { position: shipPos, facing } = this.ship as Ship;
+    const position = translateVector(shipPos, new Vector({direction: facing, magnitude: 96}))
+    const velocity = this.ship.velocity.addVector(new Velocity(this.torpedoSpeed, facing));
+    this.ship.dispatchEvent(new TorpedoEvent(this.ship, {
+      objectName: 'torpedo',
+      params: {
+        name: `Torpedo ${this.ship.name}-${this.index++}`,
+        position,
+        facing,
+        velocity,
+        mass: 5,
+      },
+      viewName: 'torpedo-view',
+    }))
   }
 
   tick(timePeriod: number) {

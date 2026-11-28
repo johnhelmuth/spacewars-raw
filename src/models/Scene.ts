@@ -1,12 +1,23 @@
 import {BoundingBox} from "../types/geometry.ts";
 import {SpaceObject} from "./SpaceObject.ts";
-import {SpaceObjectView} from "../views/SpaceObjectView.ts";
-import {Torpedo} from "./Torpedo.ts";
-import {TorpedoView} from "../views/TorpedoView.ts";
 import {TorpedoEvent} from "../events/TorpedoEvent.ts";
 import {RemoveObjectEvent} from "../events/RemoveObjectEvent.ts";
 import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
+import {SceneView} from "../views/SceneView.ts";
+import {type SpaceObjectViewNameType} from "../views/SpaceObjectViewFactory.ts";
+import {type AnySpaceObjectParamsType, SpaceObjectFactory, type SpaceObjectNameType} from "./SpaceObjectFactory.ts";
 
+export type SceneControls = {
+  screenEl: HTMLElement,
+  startStopButton: HTMLElement,
+  stepButton: HTMLElement
+};
+
+export type ObjectSpec = {
+  objectName: SpaceObjectNameType,
+  params: AnySpaceObjectParamsType,
+  viewName: SpaceObjectViewNameType
+}
 /**
  * Scene
  *
@@ -17,15 +28,24 @@ import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
  */
 export default class Scene extends EventTarget {
   options: SceneOptions;
-  objectViews: SpaceObjectView[] = [];
   boundingBox: BoundingBox;
   objectScaleWidth: number;
   objectScaleHeight: number;
 
-  constructor(options: SceneOptions, objectViews?: SpaceObjectView[]) {
+  sceneView: SceneView;
+  sceneControls: SceneControls;
+
+  objectFactory: SpaceObjectFactory;
+
+  objects: SpaceObject[] = [];
+
+  constructor(options: SceneOptions,
+              objectSpecs = [] as ObjectSpec[],
+              objectFactory: SpaceObjectFactory,
+              sceneControls: SceneControls,
+  ) {
     super();
     this.options = options;
-    this.setObjects(objectViews || [] as SpaceObjectView[]);
     this.boundingBox = new BoundingBox({
       ...this.dimensions,
       x: -(this.dimensions.width/2),
@@ -34,16 +54,49 @@ export default class Scene extends EventTarget {
 
     this.objectScaleWidth = (this.options.dimensions.width / 1000);
     this.objectScaleHeight = (this.options.dimensions.width / 1000);
+    this.sceneControls = sceneControls;
+    this.sceneView = new SceneView(this, sceneControls.screenEl);
+    this.objectFactory = objectFactory;
+    this.setObjects(objectSpecs || [] as ObjectSpec[]);
+    this.setupSceneListeners();
+  }
+
+  getObjectByName(objName: string) {
+    return this.objects.find(o => o.name === objName);
+  }
+
+  getObjectById(objId: string) {
+    return this.objects.find(o => o.id === objId);
+  }
+
+  setupSceneListeners() {
+
+    this.sceneControls.startStopButton.addEventListener('click', () => {
+      if (this.sceneView.isRunning) {
+        this.sceneView.stop();
+        this.sceneControls.startStopButton.innerText = 'Start';
+      } else {
+        this.sceneView.start();
+        this.sceneControls.startStopButton.innerText = 'Stop';
+      }
+    })
+    this.sceneControls.stepButton.addEventListener('click', () => {
+      if (this.sceneView.isRunning) {
+        this.sceneView.stop();
+        this.sceneControls.stepButton.innerText = 'Start';
+      }
+      this.sceneView.step();
+    })
   }
 
   * [Symbol.iterator]() {
-    for (let ov of this.objectViews) {
-      yield ov;
+    for (let o of this.objects) {
+      yield o;
     }
   }
 
   get sceneObjects() {
-    return this.objectViews.map(ov => ov.object);
+    return this.objects;
   }
 
   get dimensions() {
@@ -64,63 +117,60 @@ export default class Scene extends EventTarget {
     return false;
   }
 
-  private setObjects(objects: SpaceObjectView[]) {
-    objects.forEach(ov => this.addObject(ov));
+  private setObjects(objectSpecs: ObjectSpec[]) {
+    objectSpecs.forEach(objectSpec => {
+      this.addObject(this.objectFactory.getSpaceObject(objectSpec))
+    });
   }
 
-  addObject(ov: SpaceObjectView) {
-    this.setupObjectListeners(ov);
-    this.objectViews.push(ov);
+  addObject(o: SpaceObject) {
+    this.setupObjectListeners(o);
+    this.objects.push(o);
   }
 
-  removeObject(ov: SpaceObjectView | SpaceObject) {
-    let idx = undefined as number | undefined;
-    if (ov instanceof SpaceObjectView) {
-      idx = this.objectViews.indexOf(ov);
-    } else { /* It's a SpaceObject, find the matching SpaceObjectView */
-      idx = this.objectViews.findIndex(search => search.object === ov);
-    }
+  removeObject(o: SpaceObject) {
+    const idx = this.objects.indexOf(o);
     if (idx >= 0) {
-      const ov = this.objectViews[idx];
-      this.removeObjectListeners(ov);
-      this.objectViews.splice(idx, 1);
+      this.removeObjectListeners(o);
+      this.objects.splice(idx, 1);
     }
   }
 
   handleRemoveObjectEvent = (e: Event)=> {
     if (e instanceof RemoveObjectEvent) {
-      this.removeObject(e.objView);
+      this.removeObject(e.object);
       this.dispatchEvent(e.clone())
     }
   }
 
-  collidesWith(ov: SpaceObjectView) {
-    for (const oov of this.objectViews) {
-      if (oov === ov) {
+  collidesWith(o: SpaceObject) {
+    for (const oo of this.objects) {
+      if (oo === o) {
         continue;
       }
-      if (oov.isCollision(ov)) {
-        return oov;
+      if (oo.view.isCollision(o.view)) {
+        return oo;
       }
     }
   }
 
-  setupObjectListeners(ov: SpaceObjectView) {
-    ov.addEventListener('removeObject', this.handleRemoveObjectEvent);
-    ov.addEventListener('torpedo', this.handleTorpedo);
-    ov.addEventListener('self-destruct', this.handleSelfDestruct);
+  setupObjectListeners(o: SpaceObject) {
+    o.addEventListener('removeObject', this.handleRemoveObjectEvent);
+    o.addEventListener('torpedo', this.handleTorpedo);
+    o.addEventListener('self-destruct', this.handleSelfDestruct);
   }
 
-  removeObjectListeners(ov: SpaceObjectView) {
-    ov.removeEventListener('removeObject', this.handleRemoveObjectEvent);
-    ov.removeEventListener('torpedo', this.handleTorpedo);
-    ov.removeEventListener('self-destruct', this.handleSelfDestruct);
+  removeObjectListeners(o: SpaceObject) {
+    o.removeEventListener('removeObject', this.handleRemoveObjectEvent);
+    o.removeEventListener('torpedo', this.handleTorpedo);
+    o.removeEventListener('self-destruct', this.handleSelfDestruct);
   }
 
   handleTorpedo = (torpedoEvent:Event) => {
     if (torpedoEvent instanceof TorpedoEvent) {
-      if (typeof torpedoEvent.torpedo !== 'undefined') {
-        this.createNewTorpedoView(torpedoEvent.torpedo);
+      if (typeof torpedoEvent.torpedoSpec !== 'undefined') {
+        const torpedo = this.objectFactory.getSpaceObject(torpedoEvent.torpedoSpec);
+        this.addObject(torpedo);
         this.dispatchEvent(torpedoEvent.clone());
       }
     }
@@ -133,10 +183,8 @@ export default class Scene extends EventTarget {
     }
   }
 
-  createNewTorpedoView(t: Torpedo) {
-    const { dimensions, showGrid } = this.options
-    const tView = new TorpedoView(t, { dimensions, showGrid: !!showGrid });
-    this.addObject(tView);
+  render() {
+    this.sceneView.render();
   }
 }
 

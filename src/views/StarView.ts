@@ -1,95 +1,74 @@
 import {SpaceObjectView, type SpaceObjectViewOptions} from "./SpaceObjectView.ts";
 import {SpaceObject} from "../models/SpaceObject.ts";
 
-
+const RADIUS = 32;
 export class StarView extends SpaceObjectView {
 
   constructor(object: SpaceObject, options: SpaceObjectViewOptions) {
     super(object, options);
     this.vertices = [
-      // { x: -31, y: -31 },
-      // { x: 31, y: 31 },
-      { x: -64, y: -64 },
-      { x: 64, y: 64 },
+      { x: -RADIUS, y: -RADIUS },
+      { x: RADIUS, y: RADIUS },
     ];
   }
 
   defs() {
     return `
-      <defs>
-        <filter id="burning">
-          <feTurbulence
-            type="turbulence"
-            baseFrequency="0.05"
-            numOctaves="1"
-            result="turbulence" seed="200">
-            <animate id="burningAnimate" attributeName="baseFrequency" values="0.05;.1;0.5;0" dur="10s" repeatCount="indefinite" />
-          </feTurbulence>
-          <feDisplacementMap
-            in2="turbulence"
-            in="SourceGraphic"
-            scale="10"
-            xChannelSelector="R"
-            yChannelSelector="G" />
-        </filter>
-        
-        <animateTransform xlink:href="#star-8"
+      <defs>        
+        <animateTransform xlink:href="#star-1"
             attributeName="transform"
             type="rotate"
             from="360 0 0"
             to="0 0 0"
-            dur="0.3s"
-            repeatCount="indefinite"
-            fill="freeze"
-        />
-        <animateTransform xlink:href="#small-square"
-            attributeName="transform"
-            type="rotate"
-            from="0 0 0"
-            to="360 0 0"
-            dur="0.7s"
-            repeatCount="indefinite"
-            fill="freeze"
-        />
-        <animateTransform xlink:href="#pentagon"
-            attributeName="transform"
-            type="rotate"
-            from="360 0 0"
-            to="0 0 0"
-            dur="1.1s"
-            repeatCount="indefinite"
-            fill="freeze"
-        />
-        <animateTransform xlink:href="#triangle"
-            attributeName="transform"
-            type="rotate"
-            from="0 0 0"
-            to="360 0 0"
             dur="1.3s"
             repeatCount="indefinite"
             fill="freeze"
         />
-        <animateTransform xlink:href="#square"
+        <animateTransform xlink:href="#star-2"
+            attributeName="transform"
+            type="rotate"
+            from="0 0 0"
+            to="360 0 0"
+            dur="1.9s"
+            repeatCount="indefinite"
+            fill="freeze"
+        />
+        <animateTransform xlink:href="#star-3"
             attributeName="transform"
             type="rotate"
             from="360 0 0"
             to="0 0 0"
-            dur="1.7s"
+            dur="2.3s"
             repeatCount="indefinite"
             fill="freeze"
         />
+        <animateTransform xlink:href="#star-4"
+            attributeName="transform"
+            type="rotate"
+            from="0 0 0"
+            to="360 0 0"
+            dur="3.1s"
+            repeatCount="indefinite"
+            fill="freeze"
+        />
+        <radialGradient id="sunGradient">
+          <stop offset="0%" stop-color="#fff" />
+          <stop offset="80%" stop-color="#888" />
+          <stop offset="90%" stop-color="#555" />
+          <stop offset="100%" stop-color="#222"/>
+        </radialGradient>
       </defs>
     `
   }
 
   shape() {
     return this.defs() + `
-      <g filter="url(#burning)">
-        <path id="star-8" d="${this.inscribedPolystarPath(32, 8)}" stroke="#fff" stroke-dasharray="1 4" fill="transparent" /> 
-        <path id="square" d="${this.inscribedSquarePath(32)}" stroke="#fff" stroke-dasharray="1 4" fill="transparent" />
-        <path id="triangle" d="${this.inscribedTrianglePath(28)}" stroke="#fff" stroke-dasharray="1 4" fill="transparent" /> 
-        <path id="pentagon" d="${this.inscribedPolygonPath(16, 5)}" stroke="#fff" stroke-dasharray="1 4" fill="transparent" /> 
-        <path id="small-square" d="${this.inscribedSquarePath(12)}" stroke="#fff" stroke-dasharray="1 4" fill="transparent" />
+      <g>
+        <path id="star-1" d="${this.inscribedPolystarPath(RADIUS, 5)}" stroke="#fff" stroke-width="2" stroke-dasharray="1 4" fill="transparent" /> 
+        <path id="star-2" d="${this.inscribedPolystarPath(RADIUS, 7)}" stroke="#fff" stroke-width="2" stroke-dasharray="1 5" fill="transparent" /> 
+        <path id="star-3" d="${this.inscribedPolystarPath(RADIUS, 11)}" stroke="#fff" stroke-width="2" stroke-dasharray="1 4" fill="transparent" /> 
+        <path id="star-4" d="${this.inscribedPolystarPath(RADIUS, 13)}" stroke="#fff" stroke-width="2" stroke-dasharray="1 5" fill="transparent" />
+        <circle id="circle-dots" cx="0" cy="0" r="${RADIUS*.68}" fill="url(#sunGradient)" stroke-width="0"/>
       </g> 
     `;
   }

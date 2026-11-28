@@ -1,18 +1,18 @@
 import {SpaceObject} from "../models/SpaceObject.ts";
-import {Torpedo} from "../models/Torpedo.ts";
+import type {ObjectSpec} from "../models/Scene.ts";
 
 export class TorpedoEvent extends Event {
 
-  torpedo: Torpedo;
+  torpedoSpec: ObjectSpec;
   source: SpaceObject|undefined;
 
-  constructor(source: SpaceObject|undefined, torpedo: Torpedo) {
+  constructor(source: SpaceObject|undefined, torpedo: ObjectSpec) {
     super('torpedo');
-    this.torpedo = torpedo;
+    this.torpedoSpec = torpedo;
     this.source = source;
   }
 
   clone() {
-    return new TorpedoEvent(this.source, this.torpedo);
+    return new TorpedoEvent(this.source, this.torpedoSpec);
   }
 }

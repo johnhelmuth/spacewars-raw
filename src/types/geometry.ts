@@ -512,7 +512,7 @@ export type ObjectProperties = {
   mass: number;
 }
 
-export function accelPerGravity(o1: ObjectProperties, o2: ObjectProperties) {
-  const r = distance(o1.position, o2.position);
-  return G * ((o1.mass * o2.mass)/(r*r));
+export function accelPerGravity(pos1: Point, mass1: number, pos2: Point, mass2: number) {
+  const r = distance(pos1, pos2);
+  return G * ((mass1 * mass2)/(r*r));
 }

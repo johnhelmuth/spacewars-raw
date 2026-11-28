@@ -1,13 +1,23 @@
 import {SpaceObject} from "./SpaceObject.ts";
 import {Velocity} from "../types/geometry.ts";
 
-const SUN_MASS = 1.988416e30 /* Actual sun mass, kg */
-                 * 1e-21 /* Fudge factor to make game playable. */
+const SUN_MASS
+    = 1.988416e30 /* Actual sun mass, kg */
+    * 1.0e-15    /* Fudge factor to make game playable. */
 ;
+
+export type StarParamsType = {};
+
 export class Star extends SpaceObject {
 
   constructor() {
-    super('Star', { x: 0, y: 0 }, 0, new Velocity(0, 0), SUN_MASS);
+    super({
+      name: 'Star',
+      position: { x: 0, y: 0 },
+      facing: 0,
+      velocity: { magnitude: 0, direction: 0},
+      mass: SUN_MASS
+    });
     this.type = 'star';
   }
 

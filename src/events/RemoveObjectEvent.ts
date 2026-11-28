@@ -1,15 +1,15 @@
-import type {SpaceObjectView} from "../views/SpaceObjectView.ts";
+import type {SpaceObject} from "../models/SpaceObject.ts";
 
 export class RemoveObjectEvent extends Event {
 
-  objView : SpaceObjectView
+  object : SpaceObject
 
-  constructor(ov: SpaceObjectView) {
+  constructor(o: SpaceObject) {
     super('removeObject');
-    this.objView = ov;
+    this.object = o;
   }
 
   clone() {
-    return new RemoveObjectEvent(this.objView);
+    return new RemoveObjectEvent(this.object);
   }
 }

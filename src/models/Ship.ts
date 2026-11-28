@@ -1,14 +1,16 @@
-import {SpaceObject} from "./SpaceObject.ts";
-import {type Angle, LIGHT_SPEED, type Point, Velocity} from "../types/geometry.ts";
-import {TorpedoEvent} from "../events/TorpedoEvent.ts";
+import {SpaceObject, type SpaceObjectParamsType} from "./SpaceObject.ts";
+import {LIGHT_SPEED, Velocity} from "../types/geometry.ts";
 import {TorpedoTube} from "./TorpedoTube.ts";
+
+export type DriveParams = { acceleration: number, engineOn: boolean };
 
 export class Drive {
   /** _acceleration is measured in meters/second **/
   _acceleration: number = 0;
   engineOn: boolean;
 
-  constructor(acceleration: number, engineOn: boolean) {
+  constructor(params: DriveParams) {
+    const { acceleration, engineOn } = params;
     this._acceleration = Math.min(acceleration, LIGHT_SPEED);
     this.engineOn = engineOn;
   }
@@ -19,10 +21,6 @@ export class Drive {
 
   switchOff() {
     this.engineOn = false;
-  }
-
-  toggle() {
-    this.engineOn = !this.engineOn;
   }
 
   /** acceleration - Measured in meters per second. **/
@@ -39,6 +37,9 @@ export type RotateDirection = 'not' | 'left' | 'right';
 const FAST_ROTATE_FACTOR = 1;
 const SLOW_ROTATE_FACTOR = 0.06;
 
+export type ShipParamsType = SpaceObjectParamsType & {
+  driveParams: DriveParams;
+}
 export class Ship extends SpaceObject {
 
   drive: Drive;
@@ -48,13 +49,13 @@ export class Ship extends SpaceObject {
 
   rotateDirection: RotateDirection;
 
-  constructor(name: string, position: Point, facing: Angle, velocity: Velocity, drive: Drive, mass: number = 1000000) {
-    super(name, position, facing, velocity, mass);
+  constructor(params: ShipParamsType) {
+    const { name, position, facing, velocity, driveParams, mass } = params;
+    super({name, position, facing, velocity, mass});
     this.type = 'ship';
-    this.drive = drive;
+    this.drive = new Drive(driveParams);
     this.tube = new TorpedoTube();
     this.tube.setShip(this);
-    this.tube.addEventListener('torpedo', this.handleTorpedoFired);
     this.rotateAnglePerSecond = 120; // Degrees per second
     this.rotateFactor = 1.0;
     this.rotateDirection = 'not';
@@ -97,17 +98,12 @@ export class Ship extends SpaceObject {
     this.tube.fireTorpedo();
   }
 
-  handleTorpedoFired = (e: Event) => {
-    if (e instanceof TorpedoEvent) {
-      this.dispatchEvent(e.clone());
-    }
-  }
-
   engineStatus(): boolean {
     return !! this.drive.acceleration;
   }
 
-  tick({timePeriod}: { timePeriod: number, timestamp: DOMHighResTimeStamp }) {
+  tick(timePeriod: number) {
+    super.tick(timePeriod);
     this.rotateTick(timePeriod);
     this.tube.tick(timePeriod);
   }

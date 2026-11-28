@@ -1,4 +1,4 @@
-import {SpaceObjectView} from "../views/SpaceObjectView.ts";
+import {SpaceObject} from "../models/SpaceObject.ts";
 
 export const directionVectors = {
   north: {
@@ -16,14 +16,14 @@ export const directionVectors = {
 }
 export type WallType = keyof typeof directionVectors;
 
-export type CollisionTargetType = SpaceObjectView | WallType
+export type CollisionTargetType = SpaceObject | WallType
 
 
 export class CollisionEvent extends Event {
-  collides: SpaceObjectView;
+  collides: SpaceObject;
   collidedWith: CollisionTargetType;
 
-  constructor(collides: SpaceObjectView, collidedWith: CollisionTargetType) {
+  constructor(collides: SpaceObject, collidedWith: CollisionTargetType) {
     super('collision');
     this.collides = collides;
     this.collidedWith = collidedWith;
@@ -41,7 +41,7 @@ export class CollisionEvent extends Event {
   }
 
   get isSpaceObject() {
-    return this.isSpaceObjectViewType(this.collidedWith);
+    return this.isSpaceObjectType(this.collidedWith);
   }
 
   /**
@@ -58,8 +58,8 @@ export class CollisionEvent extends Event {
     return directionVectors.hasOwnProperty(o);
   }
 
-  isSpaceObjectViewType(o: any): o is SpaceObjectView {
-    return (typeof o === 'object' && o instanceof SpaceObjectView);
+  isSpaceObjectType(o: any): o is SpaceObject {
+    return (typeof o === 'object' && o instanceof SpaceObject);
   }
 
   clone() {

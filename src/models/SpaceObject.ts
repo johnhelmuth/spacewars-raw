@@ -1,28 +1,45 @@
 
 import {type Angle, type Point, Velocity} from '../types/geometry.ts';
 import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
+import type {SpaceObjectView} from "../views/SpaceObjectView.ts";
+import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
+import {RemoveObjectEvent} from "../events/RemoveObjectEvent.ts";
 
 const DEFAULT_ROTATE_ANGLE = 1; // Rotate 5 degrees by default.
+
+export type VelocityParamType = {
+  magnitude: number,
+  direction: number,
+}
+export type SpaceObjectParamsType = {
+  name: string,
+  position: Point,
+  facing: number,
+  velocity: VelocityParamType,
+  mass: number
+}
 
 export class SpaceObject extends EventTarget {
   id: string;
   name: string;
   type: string;
+  _view?: SpaceObjectView;
   _position: Point;
   _facing: number;
   _velocity: Velocity; // meters / second
   rotateAnglePerSecond: number;
   destroyed = false;
-  mass: number;
+  mass?: number;
 
-  constructor(name: string, position: Point, facing: number, velocity: Velocity, mass: number = 1) {
+  constructor(params: SpaceObjectParamsType) {
+    const { name, position, facing, velocity: { magnitude, direction }, mass = 1 } = params;
     super();
     this.id = Math.random().toString(16).substring(2, 8);
     this.name = name;
     this.type = 'generic';
     this._position = position;
     this._facing = facing;
-    this._velocity = velocity;
+    this._velocity = new Velocity(magnitude, direction);
     this.mass = mass;
     this.rotateAnglePerSecond = DEFAULT_ROTATE_ANGLE;
   }
@@ -42,6 +59,17 @@ export class SpaceObject extends EventTarget {
     }
     this._facing = facing;
     this.dispatchUpdated();
+  }
+
+  get view() {
+    if (typeof this._view === 'undefined') {
+      throw new Error(`SpaceObject.view referenced but not defined for object ${this.name}`);
+    }
+    return this._view;
+  }
+
+  set view(view: SpaceObjectView) {
+    this._view = view;
   }
 
   rotate(angle?: Angle) {
@@ -87,10 +115,36 @@ export class SpaceObject extends EventTarget {
     this.dispatchEvent(new ObjectUpdatedEvent());
   }
 
-  destroy() {
-    this.destroyed = true;
+  /**
+   * This view's object is triggering self-destruct. Start the animation for destruction, and dispatch the self-destruct event.
+   *
+   * @param e {SelfDestructEvent}
+   */
+  handleSelfDestruct = (e: Event): void => {
+    if (e instanceof SelfDestructEvent) {
+      this.destroy();
+    }
   }
 
-  tick({timePeriod, timestamp}: { timePeriod: number, timestamp: DOMHighResTimeStamp }) { timePeriod; timestamp }
+  destroy() {
+    this.destroyed = true;
+    this.view.startDestroyAnimation();
+  }
+
+  // @ts-ignore
+  tick(timePeriod: number) {
+    if (! this.view.tick()) {
+      // Send event to trigger the removal of the object from the scene.
+      this.dispatchEvent(new RemoveObjectEvent(this));
+    }
+  }
+
+  globalCornersRotated() {
+    return this.view.globalCornersRotated();
+  }
+
+  render() {
+    return this.view.render();
+  }
 
 }

@@ -9,7 +9,6 @@ import {
   Velocity
 } from "../types/geometry.ts";
 import {CollisionEvent, type CollisionTargetType, type WallType} from "../events/CollisionEvent.ts";
-import {SpaceObjectView} from "../views/SpaceObjectView.ts";
 import {SpaceObject} from "./SpaceObject.ts";
 
 export default class PhysicsEngine extends EventTarget {
@@ -37,9 +36,8 @@ export default class PhysicsEngine extends EventTarget {
     // const timePeriod = 1/60; // seconds... assuming 60 frames per second
     const timePeriod = typeof this.lastTimestamp === "number" ? (timestamp - this.lastTimestamp)/1000 : 1/60;
     this.lastTimestamp = timestamp;
-    for (const ov of scene) {
-      ov.tick({timePeriod, timestamp});
-      const o = ov.object;
+    for (const o of scene) {
+      o.tick(timePeriod);
       if (o.isStatic) {
         // Does not allow other objects to affect its position.
         continue;
@@ -53,13 +51,13 @@ export default class PhysicsEngine extends EventTarget {
       o.velocity = newVelocity;
       o.position = newPosition;
       const nextTickPosition = translateVector(o.position, this.applyTimePeriod(o.velocity, timePeriod))
-      const intersectsWall = this.wallIntersection(ov.globalCornersRotated(), nextTickPosition);
+      const intersectsWall = this.wallIntersection(o.globalCornersRotated(), nextTickPosition);
       if (intersectsWall) {
-        this.handleCollision(ov, intersectsWall);
+        this.handleCollision(o, intersectsWall);
       }
-      const collidesWith = scene.collidesWith(ov);
+      const collidesWith = scene.collidesWith(o);
       if (collidesWith) {
-        this.handleCollision(ov, collidesWith);
+        this.handleCollision(o, collidesWith);
       }
     }
     this.ticks++;
@@ -72,12 +70,13 @@ export default class PhysicsEngine extends EventTarget {
 
   accelGravityVectors(o1: SpaceObject, objects: SpaceObject[]) {
     const vectors = objects.map(o2 => {
-      if (o2 === o1) {
-        return;
+      if (o2 !== o1) {
+        if (typeof o1.mass !== 'undefined' && typeof o2.mass !== 'undefined') {
+          const magnitude = accelPerGravity(o1.position,  o1.mass, o2.position, o2.mass);
+          const direction = angleBetween(o1.position, o2.position);
+          return new Velocity(magnitude, direction)
+        }
       }
-      const magnitude = accelPerGravity(o1, o2);
-      const direction = angleBetween(o1.position, o2.position);
-      return new Velocity(magnitude, direction)
     }).filter(v => !! v);
     return vectors;
   }
@@ -152,15 +151,15 @@ export default class PhysicsEngine extends EventTarget {
    *
    * Dispatches a 'collision' event to other parts of the system.
    *
-   * @param ov {SpaceObjectView}
+   * @param o {SpaceObject}
    * @param collidedWith {CollisionTargetType}
    */
-  handleCollision(ov: SpaceObjectView, collidedWith: CollisionTargetType) {
-    const collEvent = new CollisionEvent(ov, collidedWith);
+  handleCollision(o: SpaceObject, collidedWith: CollisionTargetType) {
+    const collEvent = new CollisionEvent(o, collidedWith);
     if (collEvent.collisionType === 'wall') {
-      this.moveToOppositeEdge(ov.object, collidedWith);
-    } else if (collEvent.isSpaceObjectViewType(collidedWith)) {
-      ov.destroy();
+      this.moveToOppositeEdge(o, collidedWith);
+    } else if (collEvent.isSpaceObjectType(collidedWith)) {
+      o.destroy();
       collidedWith.destroy();
     }
     this.dispatchEvent(collEvent);

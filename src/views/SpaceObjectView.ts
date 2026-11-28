@@ -8,10 +8,6 @@ import {
   Vector
 } from "../types/geometry.ts";
 import {Renderer} from "./Renderer.ts";
-import {RemoveObjectEvent} from "../events/RemoveObjectEvent.ts";
-import {ObjectUpdatedEvent} from "../events/ObjectUpdatedEvent.ts";
-import {TorpedoEvent} from "../events/TorpedoEvent.ts";
-import {SelfDestructEvent} from "../events/SelfDestructEvent.ts";
 
 export interface SpaceObjectViewOptions {
   dimensions: { width: number; height: number };
@@ -48,39 +44,9 @@ export abstract class SpaceObjectView extends Renderer {
     this.objectScaleHeight = 1;
     this.rotatePoint = {x: 0, y: 0};
     this.destroyedAnimationTicks = 15;
-    this.setObjectListeners();
   }
 
   abstract shape(): string;
-
-  setObjectListeners() {
-    this.object.addEventListener('updated', this.handleObjectUpdated)
-    this.object.addEventListener('torpedo', this.handleTorpedo); // Dispatched from ship.
-    this.object.addEventListener('self-destruct', this.handleSelfDestruct); // Dispatched from torpedo
-  }
-
-  handleObjectUpdated = (e: Event) => {
-    if (e instanceof ObjectUpdatedEvent) {
-      this.dispatchEvent(e.clone())
-    }
-  }
-
-  handleTorpedo = (e: Event) => {
-    if (e instanceof TorpedoEvent) {
-      this.dispatchEvent(e.clone())
-    }
-  }
-
-  /**
-   * This view's object is triggering self-destruct. Start the animation for destruction, and dispatch the self-destruct event.
-   *
-   * @param e {SelfDestructEvent}
-   */
-  handleSelfDestruct = (e: Event): void => {
-    if (e instanceof SelfDestructEvent) {
-      this.destroy();
-    }
-  }
 
   get boundingBox(): BoundingBox {
     if (typeof this._boundingBox === "undefined") {
@@ -198,26 +164,16 @@ export abstract class SpaceObjectView extends Renderer {
     return polygonIntersects(this.globalCornersRotated(), ov.globalCornersRotated());
   }
 
-  tick({timePeriod, timestamp}: {timePeriod: number, timestamp: DOMHighResTimeStamp}) {
-    this.object.tick({timePeriod, timestamp});
+  tick() {
     this.animationTick += 1;
-    if (this.object.destroyed) {
-      if (! this.runningDestroyedAnimation) {
-        // Send event to trigger the removal of the object from the scene.
-        this.dispatchEvent(new RemoveObjectEvent(this));
-      }
-    }
+    return !(this.object.destroyed && !this.runningDestroyedAnimation);
   }
 
   get runningDestroyedAnimation() {
     return this.object.destroyed && (this.animationTick <= this.destroyAfter);
   }
 
-  destroy() {
-    if (! this.object.destroyed) {
-      this.object.destroy();
-      this.destroyAfter = this.animationTick + this.destroyedAnimationTicks;
-      this.dispatchEvent(new SelfDestructEvent({ object: this.object, objectView: this}));
-    }
+  startDestroyAnimation() {
+    this.destroyAfter = this.animationTick + this.destroyedAnimationTicks;
   }
 }
